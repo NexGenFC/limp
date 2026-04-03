@@ -1,0 +1,214 @@
+# LIMP — local / self-hosted style stack (single-node dev topology).
+# Primary OLTP: CockroachDB (PostgreSQL wire protocol).
+# Messaging: Apache Kafka (KRaft, single broker).
+# Log / event store: Apache Cassandra (audit fan-out from Kafka).
+
+services:
+  cockroach:
+    image: cockroachdb/cockroach:v24.3.7
+    command: start-single-node --insecure --listen-addr=0.0.0.0 --advertise-addr=cockroach
+    ports:
+      - '26257:26257'
+      - '8080:8080'
+    volumes:
+      - crdata:/cockroach/cockroach-data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          "/cockroach/cockroach sql --insecure --host=localhost -e 'SELECT 1'",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  cassandra:
+    image: cassandra:5.0
+    environment:
+      MAX_HEAP_SIZE: 512M
+      HEAP_NEWSIZE: 128M
+      CASSANDRA_CLUSTER_NAME: limp-dev
+      CASSANDRA_DC: dc1
+      CASSANDRA_RACK: rack1
+      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+    ports:
+      - '9042:9042'
+    volumes:
+      - cassandradata:/var/lib/cassandra
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          "nodetool -h localhost status | grep -E '^UN'",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 30
+      start_period: 60s
+
+  cassandra-init:
+    image: cassandra:5.0
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    entrypoint: ['/bin/bash', '-c']
+    command:
+      - |
+        set -e
+        cqlsh cassandra -e "CREATE KEYSPACE IF NOT EXISTS limp WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};"
+        cqlsh cassandra -e "CREATE TABLE IF NOT EXISTS limp.audit_logs (
+          day text,
+          event_id timeuuid,
+          django_audit_id bigint,
+          user_id bigint,
+          action text,
+          model_name text,
+          object_id text,
+          payload text,
+          PRIMARY KEY ((day), event_id)
+        ) WITH CLUSTERING ORDER BY (event_id DESC);"
+    restart: 'no'
+
+  kafka:
+    image: bitnami/kafka:3.8.0
+    environment:
+      KAFKA_CFG_NODE_ID: 0
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka:9093
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      ALLOW_PLAINTEXT_LISTENER: yes
+    ports:
+      - '9092:9092'
+    volumes:
+      - kafkadata:/bitnami/kafka
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1',
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 30s
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+      gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-in-prod-min-50-characters-xxxxxxxxxxxxxxxx}
+      DEBUG: '0'
+      ALLOWED_HOSTS: localhost,127.0.0.1,api
+      DATABASE_URL: postgresql://root@cockroach:26257/defaultdb?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      CELERY_TASK_ALWAYS_EAGER: '0'
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_AUDIT_TOPIC: limp.audit
+      CASSANDRA_HOSTS: cassandra
+      CASSANDRA_KEYSPACE: limp
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+      CSRF_TRUSTED_ORIGINS: http://localhost:3000
+      JWT_ACCESS_TOKEN_LIFETIME_MINUTES: '480'
+      JWT_REFRESH_TOKEN_LIFETIME_DAYS: '7'
+    ports:
+      - '8000:8000'
+    depends_on:
+      cockroach:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A config worker -l info
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-in-prod-min-50-characters-xxxxxxxxxxxxxxxx}
+      DEBUG: '0'
+      ALLOWED_HOSTS: localhost,127.0.0.1,api
+      DATABASE_URL: postgresql://root@cockroach:26257/defaultdb?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      CELERY_TASK_ALWAYS_EAGER: '0'
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_AUDIT_TOPIC: limp.audit
+    depends_on:
+      cockroach:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A config beat -l info
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-in-prod-min-50-characters-xxxxxxxxxxxxxxxx}
+      DEBUG: '0'
+      ALLOWED_HOSTS: localhost,127.0.0.1,api
+      DATABASE_URL: postgresql://root@cockroach:26257/defaultdb?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      CELERY_TASK_ALWAYS_EAGER: '0'
+    depends_on:
+      cockroach:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  audit-consumer:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python scripts/audit_kafka_consumer.py
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_AUDIT_TOPIC: limp.audit
+      KAFKA_CONSUMER_GROUP: limp-audit-cassandra
+      CASSANDRA_HOSTS: cassandra
+      CASSANDRA_KEYSPACE: limp
+    depends_on:
+      cassandra-init:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+
+volumes:
+  crdata: {}
+  cassandradata: {}
+  kafkadata: {}

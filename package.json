@@ -1,0 +1,25 @@
+{
+  "name": "limp-monorepo",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev": "pnpm --dir frontend dev",
+    "build": "pnpm --dir frontend build",
+    "start": "pnpm --dir frontend start",
+    "lint": "pnpm --dir frontend lint",
+    "lint:fix": "pnpm --dir frontend lint:fix",
+    "format": "pnpm --dir frontend format",
+    "format:check": "pnpm --dir frontend format:check",
+    "typecheck": "pnpm --dir frontend typecheck",
+    "update:safe": "pnpm -r update",
+    "update:latest": "echo 'Review breaking changes before merging. Then run: pnpm -r up -L'; exit 1",
+    "lint:be": "cd backend && uv run ruff check .",
+    "format:be": "cd backend && uv run ruff format .",
+    "format:be:check": "cd backend && uv run ruff format --check .",
+    "test:be": "cd backend && uv run pytest -q",
+    "lint:all": "pnpm lint && pnpm lint:be",
+    "test:all": "pnpm test:be",
+    "check": "pnpm lint:all && pnpm typecheck && pnpm test:be && pnpm format:be:check",
+    "ci": "pnpm check && pnpm build"
+  }
+}
