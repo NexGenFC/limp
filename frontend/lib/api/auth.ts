@@ -1,28 +1,29 @@
 import { apiClient } from '@/lib/api/client';
 import type { AuthUser } from '@/lib/stores/auth-store';
 
-interface LoginResponse {
-  access: string;
-  refresh: string;
+interface Envelope<T> {
+  success: boolean;
+  data: T;
+  meta?: Record<string, unknown>;
 }
 
-interface MeResponse {
-  success: boolean;
-  data: AuthUser;
+interface TokenPair {
+  access: string;
+  refresh: string;
 }
 
 export async function loginApi(
   email: string,
   password: string,
-): Promise<{ access: string; refresh: string }> {
-  const res = await apiClient.post<LoginResponse>('/auth/login/', {
+): Promise<TokenPair> {
+  const res = await apiClient.post<Envelope<TokenPair>>('/auth/login/', {
     email,
     password,
   });
-  return res.data;
+  return res.data.data;
 }
 
 export async function fetchMe(): Promise<AuthUser> {
-  const res = await apiClient.get<MeResponse>('/auth/me/');
+  const res = await apiClient.get<Envelope<AuthUser>>('/auth/me/');
   return res.data.data;
 }

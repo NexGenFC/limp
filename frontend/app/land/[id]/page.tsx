@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation';
 import { AuthGuard } from '@/components/auth-guard';
 import { AppShell } from '@/components/app-shell';
 import { fetchLandFile } from '@/lib/api/land';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 function Field({
   label,
@@ -27,11 +28,12 @@ function Field({
 
 export default function LandDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const accessToken = useAuthStore((s) => s.accessToken);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['land-file', id],
     queryFn: () => fetchLandFile(Number(id)),
-    enabled: !!id,
+    enabled: !!id && !!accessToken,
   });
 
   return (

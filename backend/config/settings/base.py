@@ -7,13 +7,17 @@ import environ
 from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+REPO_ROOT = BASE_DIR.parent
 
 env = environ.Env(
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, []),
 )
 
-environ.Env.read_env(BASE_DIR / ".env")
+_env_file = BASE_DIR / ".env"
+if not _env_file.exists():
+    _env_file = REPO_ROOT / ".env"
+environ.Env.read_env(_env_file)
 
 SECRET_KEY = env(
     "SECRET_KEY",

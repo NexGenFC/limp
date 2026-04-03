@@ -3,7 +3,7 @@
 **For:** Figma Designer + Frontend Developer  
 **Version:** 1.0 | **Date:** March 2026  
 **Platform:** Web (Desktop-first, responsive down to tablet)  
-**Frontend Stack:** Next.js (App Router) + React + TypeScript strict + shadcn/ui + Tailwind CSS (Ant Design remains an optional alternative). Backend data platform (CockroachDB, Kafka, Cassandra) does not change UI patterns — all data via `/api/v1/`.
+**Frontend Stack:** Next.js (App Router) + React 19 + TypeScript strict + shadcn/ui + Tailwind CSS v4. Backend data platform (CockroachDB, Kafka, Cassandra) does not change UI patterns — all data via `/api/v1/`.
 
 *Engineering tracking:* [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) · [COMPLETED.md](COMPLETED.md) · [BACKLOG.md](BACKLOG.md).
 
@@ -667,14 +667,14 @@ Design and build these as reusable components. Every page is built from these.
 
 ### Tech Stack
 ```
-React 18 (Vite build tool)
-React Router v6 (routing)
+Next.js 16 (App Router, Turbopack in dev)
+React 19, TypeScript strict
 @tanstack/react-query (server state, API caching)
 Zustand (global client state: auth, user, UI state)
 Axios (HTTP client with interceptors)
-Ant Design 5.x OR shadcn/ui + Tailwind CSS (component library)
+shadcn/ui + Tailwind CSS v4 (component library)
 React Hook Form + Zod (form handling + validation)
-date-fns (date formatting)
+lucide-react (icons)
 ```
 
 ### File Structure
@@ -748,11 +748,11 @@ const { user } = useCurrentUser()
 
 ### Environment Variables
 ```
-VITE_API_BASE_URL=https://api.yourdomain.com
+NEXT_PUBLIC_API_URL=https://api.yourdomain.com
 ```
 
 ### Key UX Rules for Developer
-- Every list page must have a loading skeleton — use Ant Design Skeleton or build custom
+- Every list page must have a loading skeleton — use shadcn Skeleton or build custom
 - All forms: use React Hook Form, validate on blur, show inline errors
 - Never store auth tokens in localStorage — memory + httpOnly cookie only
 - All destructive actions need a ConfirmModal — no direct execution on click

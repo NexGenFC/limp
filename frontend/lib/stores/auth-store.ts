@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export type UserRole =
   | 'FOUNDER'
@@ -26,9 +27,22 @@ type AuthState = {
   clearSession: () => void;
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
-  accessToken: null,
-  user: null,
-  setSession: (token, user) => set({ accessToken: token, user }),
-  clearSession: () => set({ accessToken: null, user: null }),
-}));
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      accessToken: null,
+      user: null,
+      setSession: (token, user) => set({ accessToken: token, user }),
+      clearSession: () => set({ accessToken: null, user: null }),
+    }),
+    {
+      name: 'limp-auth',
+      storage: createJSONStorage(() => sessionStorage),
+      partialize: (state) => ({
+        accessToken: state.accessToken,
+        user: state.user,
+      }),
+      skipHydration: true,
+    },
+  ),
+);

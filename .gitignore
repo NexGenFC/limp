@@ -18,3 +18,4 @@ dist/
 backend/.venv/
 backend/staticfiles/
 frontend/.turbo/
+local/*

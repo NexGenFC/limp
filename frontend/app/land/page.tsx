@@ -8,6 +8,7 @@ import { AppShell } from '@/components/app-shell';
 import { RoleGuard } from '@/components/role-guard';
 import { Button } from '@/components/ui/button';
 import { fetchLandFiles, type LandFile } from '@/lib/api/land';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 const STATUS_BADGE: Record<string, string> = {
   ACTIVE: 'bg-emerald-100 text-emerald-800',
@@ -84,9 +85,12 @@ function LandTable({ data }: { data: LandFile[] }) {
 }
 
 export default function LandListPage() {
+  const accessToken = useAuthStore((s) => s.accessToken);
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['land-files'],
     queryFn: fetchLandFiles,
+    enabled: !!accessToken,
   });
 
   return (
