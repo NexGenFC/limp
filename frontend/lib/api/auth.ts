@@ -7,7 +7,7 @@ interface Envelope<T> {
   meta?: Record<string, unknown>;
 }
 
-interface TokenPair {
+export interface TokenPair {
   access: string;
   refresh: string;
 }
@@ -19,6 +19,15 @@ export async function loginApi(
   const res = await apiClient.post<Envelope<TokenPair>>('/auth/login/', {
     email,
     password,
+  });
+  return res.data.data;
+}
+
+export async function refreshTokenApi(
+  refresh: string,
+): Promise<TokenPair> {
+  const res = await apiClient.post<Envelope<TokenPair>>('/auth/refresh/', {
+    refresh,
   });
   return res.data.data;
 }

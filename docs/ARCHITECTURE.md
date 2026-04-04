@@ -217,8 +217,8 @@ TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
 TWILIO_FROM_NUMBER=
 
-# JWT
-JWT_ACCESS_TOKEN_LIFETIME_MINUTES=480
+# JWT (defaults: short access, longer refresh — both env-configurable)
+JWT_ACCESS_TOKEN_LIFETIME_MINUTES=10
 JWT_REFRESH_TOKEN_LIFETIME_DAYS=7
 ```
 
@@ -230,7 +230,7 @@ Push to main branch
   → Build React frontend (npm run build)
   → SSH into EC2
   → Pull latest code
-  → pip install requirements
+  → uv sync --all-groups
   → python manage.py migrate
   → Collect static files
   → Restart Gunicorn + Celery
@@ -473,12 +473,35 @@ LIMP app migrations are reviewed for **CockroachDB** (PostgreSQL protocol) compa
 ```
 1. POST /api/auth/login/ → {email, password}
 2. Django validates credentials
-3. Returns {access_token (8h), refresh_token (7d)}
-4. Frontend stores tokens in memory (access) and httpOnly cookie (refresh)
+3. Returns {access_token (10 min), refresh_token (7 days)} — both env-configurable
+4. Frontend stores tokens and refreshes access proactively every ~8 min
 5. Every API request: Authorization: Bearer <access_token>
-6. Token expired → POST /api/auth/refresh/ → new access token
+6. Token expired → POST /api/auth/refresh/ → new access + refresh pair
+   (old refresh is blacklisted — ROTATE + BLACKLIST enabled)
 7. Refresh token expired → force re-login
 ```
+
+### 8.1.1 Keycloak OIDC (optional, defence-in-depth)
+
+When `KEYCLOAK_SERVER_URL` is set, the API **also** accepts Keycloak-issued JWTs:
+
+```
+1. User authenticates via Keycloak (browser redirect or direct grant)
+2. Keycloak issues RS256 JWT with realm roles
+3. API validates token against Keycloak JWKS endpoint
+4. Auto-provisions Django User from email claim
+5. Maps Keycloak realm roles → UserRole:
+   limp_founder        → FOUNDER
+   limp_management     → MANAGEMENT
+   limp_inhouse_advocate  → IN_HOUSE_ADVOCATE
+   limp_external_advocate → EXTERNAL_ADVOCATE
+   limp_revenue_team   → REVENUE_TEAM
+   limp_surveyor_inhouse  → SURVEYOR_INHOUSE
+   limp_surveyor_freelance → SURVEYOR_FREELANCE
+   limp_field_staff    → FIELD_STAFF
+```
+
+Keycloak provides: MFA (TOTP/WebAuthn), brute-force protection, account lockout, password policies, SSO, session management at IdP level. Both SimpleJWT and Keycloak auth backends run **simultaneously** — the first to succeed authenticates the request.
 
 ### 8.2 External Advocate Token Scoping
 

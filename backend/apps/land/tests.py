@@ -127,8 +127,8 @@ def test_list_excludes_deleted(founder, village):
     res = _auth(founder).get("/api/v1/land/")
     body = json.loads(res.content)
     ids = [item["id"] for item in body["data"]]
-    assert lf2.pk in ids
-    assert lf1.pk not in ids
+    assert str(lf2.pk) in ids
+    assert str(lf1.pk) not in ids
 
 
 # ---------------------------------------------------------------------------

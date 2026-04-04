@@ -240,7 +240,7 @@ District
 - Every API endpoint validates role claim before serving data
 - External advocate tokens additionally scoped to case ID list
 - Freelance surveyor tokens scoped to task ID list
-- Session expiry: 8 hours (configurable)
+- Access token: short-lived (default 10 minutes, env-configurable); refresh token: N days (env-configurable); client refreshes access automatically; optional Keycloak IdP for MFA / SSO
 - All login events logged (user, IP, timestamp, success/failure)
 
 **Acceptance Criteria:**

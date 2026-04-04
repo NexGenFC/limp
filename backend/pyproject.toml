@@ -16,7 +16,9 @@ dependencies = [
     "gunicorn>=25.3.0",
     "kafka-python>=2.3.0",
     "psycopg[binary]>=3.3.3",
+    "pyjwt[crypto]>=2.12.1",
     "redis>=7.4.0",
+    "uuid-utils>=0.14.1",
 ]
 
 [dependency-groups]

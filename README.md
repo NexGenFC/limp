@@ -12,6 +12,15 @@ The repo is the source of truth: **commit and push** when work is done. After cl
 2. Follow **Path A** below for day-to-day dev (no Docker required).
 3. Lockfiles are committed: **`pnpm-lock.yaml`** (root) and **`backend/uv.lock`** — use `pnpm install` and `uv sync` so every machine gets the same dependency graph.
 4. Never commit **`.env`** (it is gitignored). Always start from **`.env.example`**.
+5. **After every `git pull`:** apply new Django migrations so your DB matches `main`:
+
+   ```bash
+   cd backend && uv sync --all-groups && uv run python manage.py migrate
+   ```
+
+   If `migrate` **errors** (schema mismatch), your local SQLite was built from older migrations. **Delete it and re-run migrate** — see **[`docs/DEV_DATABASE.md`](docs/DEV_DATABASE.md)** for the full reason and exact commands.
+
+   (Same `uv sync` + `migrate` flow is part of **Path A §2** below for first-time backend setup.)
 
 ## Prerequisites
 
@@ -78,12 +87,14 @@ Use this for frontend work, quick API checks, and CI-equivalent runs.
    That runs lint (frontend + backend Ruff), TypeScript, pytest, and Ruff format check — same checks as the backend job plus the frontend lint/type parts of CI. For a full match including **production build**:
 
    ```bash
-   pnpm ci
+   pnpm run ci
    ```
 
 **Note:** With `KAFKA_BOOTSTRAP_SERVERS` unset, audit rows are **not** published to Kafka (by design). That matches CI.
 
 **CORS:** If the UI cannot reach the API, ensure `.env` (backend) includes `CORS_ALLOWED_ORIGINS=http://localhost:3000` and `CSRF_TRUSTED_ORIGINS=http://localhost:3000` (see `.env.example`).
+
+**Local DB problems after pulling?** Read **[`docs/DEV_DATABASE.md`](docs/DEV_DATABASE.md)** — when to delete `backend/db.sqlite3`, why, and how to reset safely.
 
 ### B — Full stack (Docker): CockroachDB + Redis + Kafka + Cassandra
 
@@ -147,7 +158,7 @@ Same as **path A** above: `cp .env.example .env` → `cd backend && uv sync --al
 | `pnpm update:safe` | Range-respecting dependency updates |
 | `pnpm lint:be` / `pnpm test:be` | Ruff / pytest in `backend/` |
 | `pnpm check` | **One command:** lint all, typecheck, pytest, Ruff format check (run before push) |
-| `pnpm ci` | Same as `check`, then `pnpm build` (closest local match to full GitHub CI) |
+| `pnpm run ci` | Same as `check`, then `pnpm build` (closest local match to full GitHub CI). Use `pnpm run ci` so pnpm does not treat `ci` as a built-in. |
 
 Backend formatting: `pnpm format:be` (Ruff format).
 
@@ -166,7 +177,9 @@ With Docker running:
 docker compose up --build
 ```
 
-Services: **CockroachDB** (SQL UI on port **8080**, SQL on **26257**), **Kafka** (**9092**), **Cassandra** (**9042**), **Redis**, **api** (Gunicorn), **celery-worker**, **celery-beat**, **audit-consumer** (Kafka → Cassandra). Set `DJANGO_SECRET_KEY` for real use. Requires Docker Compose v2.20+ for `service_completed_successfully` on `cassandra-init`.
+Services: **CockroachDB** (SQL UI on port **8080**, SQL on **26257**), **Kafka** (**9092**), **Cassandra** (**9042**), **Redis**, **Keycloak** (OIDC, port **8180**, admin: `admin`/`admin`), **api** (Gunicorn), **celery-worker**, **celery-beat**, **audit-consumer** (Kafka → Cassandra). Set `DJANGO_SECRET_KEY` for real use. Requires Docker Compose v2.20+ for `service_completed_successfully` on `cassandra-init`.
+
+**Keycloak (optional):** When `KEYCLOAK_SERVER_URL` is set, the API accepts both SimpleJWT (direct login) and Keycloak-issued JWTs. Users auto-provision on first Keycloak login. Realm roles (`limp_founder`, `limp_management`, etc.) map to `UserRole`. See `.env.example` for config.
 
 ## CI
 
@@ -185,10 +198,13 @@ GitHub Actions (`.github/workflows/ci.yml`): frontend `lint`, `typecheck`, `buil
 | [`docs/COMPLETED.md`](docs/COMPLETED.md) | Shipped scope — team sync |
 | [`docs/BACKLOG.md`](docs/BACKLOG.md) | Not done / partial — priorities & roles |
 | [`docs/COCKROACHDB_MIGRATIONS.md`](docs/COCKROACHDB_MIGRATIONS.md) | CockroachDB DDL review & checklist |
+| [`docs/backend/README.md`](docs/backend/README.md) | Backend parallel work briefs (four owners) |
+| [`docs/backend/ARCHITECTURE_BASE.md`](docs/backend/ARCHITECTURE_BASE.md) | Land-anchored domain apps & related names |
+| [`docs/DEV_DATABASE.md`](docs/DEV_DATABASE.md) | When / why to reset local SQLite or Docker DB |
 
 ## Push changes to GitHub
 
-From the repo root (after `pnpm check` or `pnpm ci` passes):
+From the repo root (after `pnpm check` or `pnpm run ci` passes):
 
 ```bash
 git status

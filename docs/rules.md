@@ -8,7 +8,7 @@
 
 This is the **Land Intelligence Management Platform (LIMP)** — an enterprise-grade operational system for Abhivruddhi Ventures, a Karnataka-based real estate and land acquisition company.
 
-**Stack:** Django 6.x + DRF · Next.js (React 19) + TypeScript strict · **CockroachDB** (primary OLTP, PostgreSQL wire protocol) · **Redis** · **Celery** · **Apache Kafka** (events) · **Apache Cassandra** (audit log fan-out) · private S3-compatible storage · uv (Python) · pnpm (Node)  
+**Stack:** Django 6.x + DRF · Next.js (React 19) + TypeScript strict · **CockroachDB** (primary OLTP, PostgreSQL wire protocol) · **Redis** · **Celery** · **Apache Kafka** (events) · **Apache Cassandra** (audit log fan-out) · optional **Keycloak** (OIDC) · private S3-compatible storage · uv (Python) · pnpm (Node)  
 **Current Phase:** Phase 1 — Foundation  
 **Repo layout:**
 ```
@@ -337,8 +337,9 @@ Before writing any new feature, verify:
 | COMPLETED.md | /docs/COMPLETED.md | Shipped scope — team sync |
 | BACKLOG.md | /docs/BACKLOG.md | Not done / partial — priorities and roles |
 | COCKROACHDB_MIGRATIONS.md | /docs/COCKROACHDB_MIGRATIONS.md | CRDB DDL review + future migration checklist |
+| DEV_DATABASE.md | /docs/DEV_DATABASE.md | When / why to reset local SQLite or Docker DB after pulls |
 | rules.md | /docs/rules.md | This file — coding rules for AI agents |
 
 ---
 
-*Last updated: April 2026 — Phase 1 active; CRDB migration doc + team tracking linked*
+*Last updated: April 2026 — Phase 1 active; Keycloak optional; local DB reset doc linked*

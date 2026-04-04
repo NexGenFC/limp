@@ -23,9 +23,12 @@ export default function LoginPage() {
     try {
       const tokens = await loginApi(email, password);
       useAuthStore.getState().clearSession();
-      useAuthStore.setState({ accessToken: tokens.access });
+      useAuthStore.setState({
+        accessToken: tokens.access,
+        refreshToken: tokens.refresh,
+      });
       const user = await fetchMe();
-      setSession(tokens.access, user);
+      setSession(tokens.access, tokens.refresh, user);
       router.replace('/');
     } catch (err: unknown) {
       const msg =

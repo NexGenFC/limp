@@ -1,7 +1,7 @@
 import { apiClient } from '@/lib/api/client';
 
 export interface LandFile {
-  id: number;
+  id: string;
   land_id: string;
   village: number;
   village_name: string;
@@ -49,7 +49,7 @@ export async function fetchLandFiles(): Promise<LandFile[]> {
   return res.data.data;
 }
 
-export async function fetchLandFile(id: number): Promise<LandFile> {
+export async function fetchLandFile(id: string): Promise<LandFile> {
   const res = await apiClient.get<Envelope<LandFile>>(`/land/${id}/`);
   return res.data.data;
 }
@@ -61,6 +61,6 @@ export async function createLandFile(
   return res.data.data;
 }
 
-export async function deleteLandFile(id: number): Promise<void> {
+export async function deleteLandFile(id: string): Promise<void> {
   await apiClient.delete(`/land/${id}/`);
 }

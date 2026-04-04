@@ -4,6 +4,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTokenRefresh } from '@/lib/hooks/use-token-refresh';
+
+function TokenRefreshGate() {
+  useTokenRefresh();
+  return null;
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -24,6 +30,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <TokenRefreshGate />
+      {children}
+    </QueryClientProvider>
   );
 }

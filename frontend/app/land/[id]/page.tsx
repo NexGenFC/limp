@@ -32,7 +32,7 @@ export default function LandDetailPage() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['land-file', id],
-    queryFn: () => fetchLandFile(Number(id)),
+    queryFn: () => fetchLandFile(id),
     enabled: !!id && !!accessToken,
   });
 

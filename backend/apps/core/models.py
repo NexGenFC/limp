@@ -1,6 +1,14 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from uuid_utils import uuid7 as _uuid7
+
+
+def generate_uuid7() -> uuid.UUID:
+    """Return a stdlib ``uuid.UUID`` instance containing a UUIDv7 value."""
+    return uuid.UUID(str(_uuid7()))
 
 
 class ActiveManager(models.Manager):
@@ -63,7 +71,13 @@ class SoftDeleteModel(models.Model):
 
 
 class BaseModel(AuditedModel, SoftDeleteModel):
-    """Combines Audited + SoftDelete — the standard base for all domain models."""
+    """Combines Audited + SoftDelete — the standard base for all domain models.
+
+    Primary key is **UUIDv7** (time-ordered, globally unique, no sequence
+    contention). Geography, User, and AuditLog keep integer PKs.
+    """
+
+    id = models.UUIDField(primary_key=True, default=generate_uuid7, editable=False)
 
     class Meta:
         abstract = True

@@ -22,8 +22,10 @@ export interface AuthUser {
 
 type AuthState = {
   accessToken: string | null;
+  refreshToken: string | null;
   user: AuthUser | null;
-  setSession: (token: string, user: AuthUser) => void;
+  setSession: (access: string, refresh: string, user: AuthUser) => void;
+  setTokens: (access: string, refresh: string) => void;
   clearSession: () => void;
 };
 
@@ -31,15 +33,21 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       accessToken: null,
+      refreshToken: null,
       user: null,
-      setSession: (token, user) => set({ accessToken: token, user }),
-      clearSession: () => set({ accessToken: null, user: null }),
+      setSession: (access, refresh, user) =>
+        set({ accessToken: access, refreshToken: refresh, user }),
+      setTokens: (access, refresh) =>
+        set({ accessToken: access, refreshToken: refresh }),
+      clearSession: () =>
+        set({ accessToken: null, refreshToken: null, user: null }),
     }),
     {
       name: 'limp-auth',
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
         accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
         user: state.user,
       }),
       skipHydration: true,

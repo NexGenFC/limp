@@ -43,8 +43,13 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.geography",
     "apps.land",
+    "apps.legal",
+    "apps.revenue",
+    "apps.tasks",
+    "apps.documents",
     "apps.audit",
     "apps.telemetry",
+    "rest_framework_simplejwt.token_blacklist",
 ]
 
 MIDDLEWARE = [
@@ -106,6 +111,14 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "users.User"
 
+# ---------------------------------------------------------------------------
+# Security headers (defence-in-depth — production.py tightens further)
+# ---------------------------------------------------------------------------
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+SECURE_REFERRER_POLICY = "same-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+
 _cors = env.list("CORS_ALLOWED_ORIGINS", default=[])
 CORS_ALLOWED_ORIGINS = [o for o in _cors if o]
 CORS_ALLOW_CREDENTIALS = True
@@ -126,6 +139,7 @@ CACHES = {
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "apps.users.keycloak.KeycloakJWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_RENDERER_CLASSES": ("apps.core.renderers.EnvelopeJSONRenderer",),
@@ -145,13 +159,19 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(
-        minutes=env.int("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", default=480)
+        minutes=env.int("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", default=10)
     ),
     "REFRESH_TOKEN_LIFETIME": timedelta(
         days=env.int("JWT_REFRESH_TOKEN_LIFETIME_DAYS", default=7)
     ),
-    "ROTATE_REFRESH_TOKENS": False,
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
+    "TOKEN_OBTAIN_SERIALIZER": "apps.users.serializers.LimpTokenObtainPairSerializer",
+    "JTI_CLAIM": "jti",
+    "USER_ID_CLAIM": "user_id",
+    "USER_ID_FIELD": "id",
 }
 
 SPECTACULAR_SETTINGS = {
@@ -181,3 +201,9 @@ KAFKA_BOOTSTRAP_SERVERS = env("KAFKA_BOOTSTRAP_SERVERS", default="")
 KAFKA_AUDIT_TOPIC = env("KAFKA_AUDIT_TOPIC", default="limp.audit")
 CASSANDRA_HOSTS = env("CASSANDRA_HOSTS", default="")
 CASSANDRA_KEYSPACE = env("CASSANDRA_KEYSPACE", default="limp")
+
+
+# --- Keycloak OIDC (optional; empty = disabled, SimpleJWT only) ---
+KEYCLOAK_SERVER_URL = env("KEYCLOAK_SERVER_URL", default="")
+KEYCLOAK_REALM = env("KEYCLOAK_REALM", default="limp")
+KEYCLOAK_CLIENT_ID = env("KEYCLOAK_CLIENT_ID", default="limp-api")

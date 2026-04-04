@@ -16,6 +16,10 @@ All **LIMP-owned** initial migrations were reviewed at the **Django migration op
 | `geography` | `0001_initial` | `BigAutoField`, `ForeignKey` + `PROTECT`, `unique_together` → `UNIQUE` constraints — compatible. |
 | `land` | `0001_initial` | `DecimalField`, multiple `ForeignKey` to `User` (`SET_NULL` / `PROTECT`), `JSON`-free — compatible. |
 | `audit` | `0001_initial` | `JSONField` (PostgreSQL backend → **JSONB**), `GenericIPAddressField`, composite `models.Index` — compatible with CRDB JSONB / indexing rules. |
+| `legal` | `0001_initial` | `LegalCase` → `land` FK (`PROTECT`); standard fields — compatible. |
+| `revenue` | `0001_initial` | `GovernmentWorkflow`; **partial** `UniqueConstraint` (`is_deleted=False`) — verify on your CRDB version if unsure. |
+| `tasks` | `0001_initial` | `Task`, `NotificationLog`; FKs to `land`, `User` — compatible. |
+| `documents` | `0001_initial` | Checklist + `DocumentVersion`; partial unique on checklist — same note as revenue. |
 
 **Verdict:** No migration edits were required for the current codebase. **Future** migrations must be checked before merge (see checklist below).
 

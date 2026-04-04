@@ -35,12 +35,15 @@ These eight roles are defined in code (`UserRole` in `backend/apps/users/models.
 
 - Settings split: `development` / `production`; `DATABASE_URL` (PostgreSQL/Cockroach) or SQLite fallback.
 - **Envelope** JSON responses and **drf-spectacular** OpenAPI.
-- **JWT** (SimpleJWT): login (email), refresh, logout, me — with **role in token payload**.
+- **JWT** (SimpleJWT): login (email), refresh (rotate + blacklist), logout, me — role in token; **10-min access** (env), **N-day refresh** (env), proactive silent refresh on frontend.
 - **Rate limiting** on login + DRF throttling.
-- **Core mixins:** timestamps, audit user fields, soft delete, `ActiveManager`.
+- **Core mixins:** timestamps, audit user fields, soft delete, `ActiveManager`; domain models use **UUIDv7 primary keys** (`BaseModel.id`).
+- **Security:** RBAC at API layer; rate limit on login; security headers (NOSNIFF, X-Frame DENY, Referrer same-origin, COOP same-origin); production.py enforces TLS, HSTS, httpOnly+Secure+SameSite cookies. Token blacklist enabled.
+- **Keycloak OIDC (optional):** `KeycloakJWTAuthentication` validates Keycloak-issued JWTs alongside SimpleJWT; auto-provisions Django users from Keycloak claims; maps realm roles → `UserRole`; disabled when `KEYCLOAK_SERVER_URL` is empty (CI/local default). Keycloak service in `docker-compose.yml` (port 8180).
 - **Geography API:** District → Taluk → Hobli → Village (read-only ViewSets, filters).
 - **Land Master API:** `LandFile` CRUD, generated `land_id`, soft delete on DELETE.
-- **RBAC permissions:** `LandPermission` in `apps/users/permissions.py` — enforces PRD §3.2 access matrix on land endpoints. **25 tests** cover all 8 roles + unauthenticated.
+- **Phase 1 domain scaffold (backend):** Django apps `legal`, `revenue`, `tasks`, `documents` with land-anchored models (`LegalCase`, `GovernmentWorkflow`, `Task` + `NotificationLog`, checklist + `DocumentVersion`), initial migrations, admin, model tests; routes composed via `config/api_v1_urls.py` (feature APIs to be added per assignee briefs). See [`docs/backend/ARCHITECTURE_BASE.md`](backend/ARCHITECTURE_BASE.md).
+- **RBAC permissions:** `LandPermission` in `apps/users/permissions.py` — enforces PRD §3.2 access matrix on land endpoints. **Pytest suite** covers land RBAC (8 roles), domain scaffolds, Keycloak auth (mocked), health, login — see CI / `pytest -q`.
 - **Audit (OLTP):** `AuditLog` + middleware on mutating `/api/` calls.
 - **Telemetry:** Celery task publishes audit events to Kafka when configured; **no-op** if `KAFKA_BOOTSTRAP_SERVERS` unset.
 - **Consumer script:** Kafka → Cassandra (`scripts/audit_kafka_consumer.py`).
@@ -67,6 +70,7 @@ These eight roles are defined in code (`UserRole` in `backend/apps/users/models.
 ## Documentation
 
 - PRD, HLD, ARCHITECTURE, UI_UX_SPEC, rules — product/architecture baseline.
+- **DEV_DATABASE** — when / why to reset local SQLite or Docker DB after `git pull`.
 - **IMPLEMENTATION_STATUS** — engineering truth table.
 - **COCKROACHDB_MIGRATIONS** — DDL review for CRDB.
 - **COMPLETED** (this file) / **BACKLOG** — team sync.

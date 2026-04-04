@@ -12,7 +12,7 @@
 
 | ID | Item | When |
 |----|------|------|
-| B1 | API RBAC on land endpoints (permissions.py, 25 tests) | April 2026 |
+| B1 | API RBAC on land endpoints (permissions.py, full role matrix tests) | April 2026 |
 | B2 | Login UI + AuthGuard + Zustand session | April 2026 |
 | B3 | Land Master UI (list, create with geography cascade, detail) | April 2026 |
 | B4 | RoleGuard component + /403 page | April 2026 |
@@ -24,15 +24,19 @@
 | ID | Item | Status | Roles / notes |
 |----|------|--------|----------------|
 | B5 | Full Karnataka geography **seed** (production-scale) | Not in repo | Demo chain: run `python manage.py seed_demo_geography` (see README) |
-| B6 | Refresh token hardening (httpOnly cookie for refresh) | Not done | Security improvement before production |
+| B6 | Refresh token in httpOnly cookie (instead of JS-accessible store) | Not done | Security improvement before production; rotate + blacklist already works |
+
+## Backend parallel work (assignments)
+
+Four non-overlapping backend briefs (branch + PR, `pnpm check` before push): **[`docs/backend/README.md`](backend/README.md)**.
 
 ## Product / Phase 1 (backend)
 
 | ID | Item | Status | Roles / notes |
 |----|------|--------|----------------|
-| B7 | Legal cases, hearings, POA engine, documents vault | Not scaffolded | Advocates, Founder, Management |
-| B8 | Tasks module + notifications (WhatsApp / SMS) | Not scaffolded | Field staff, surveyors, management |
-| B9 | S3 **pre-signed** upload/download | Not implemented | All roles that attach files |
+| B7 | Legal cases, hearings, POA engine, documents vault | **Models scaffolded**; APIs / compliance engine not done | [`docs/backend/ARCHITECTURE_BASE.md`](backend/ARCHITECTURE_BASE.md) |
+| B8 | Tasks module + notifications (WhatsApp / SMS) | **Models scaffolded**; APIs / Celery / channels not done | Tasks app has `Task`, `NotificationLog` |
+| B9 | S3 **pre-signed** upload/download | **Models scaffolded** (`DocumentVersion`); presign endpoints not done | Person 4 brief |
 | B10 | Dashboard aggregation endpoints | Not implemented | **FOUNDER**, **MANAGEMENT** |
 | B11 | JWT **case_ids** / **task_ids** scoping for external advocate & freelance surveyor | Partially spec'd (HLD) | **EXTERNAL_ADVOCATE**, **SURVEYOR_FREELANCE** |
 
