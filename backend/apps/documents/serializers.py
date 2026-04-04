@@ -15,6 +15,8 @@ class LandDocumentChecklistItemSerializer(serializers.ModelSerializer):
     checklist_status_display = serializers.CharField(
         source="get_checklist_status_display", read_only=True
     )
+    created_by_email = serializers.CharField(source="created_by.email", read_only=True)
+    updated_by_email = serializers.CharField(source="updated_by.email", read_only=True)
 
     class Meta:
         model = LandDocumentChecklistItem
@@ -29,14 +31,31 @@ class LandDocumentChecklistItemSerializer(serializers.ModelSerializer):
             "remarks",
             "created_at",
             "updated_at",
+            "created_by",
+            "created_by_email",
+            "updated_by",
+            "updated_by_email",
         )
-        read_only_fields = ("id", "created_at", "updated_at")
+        read_only_fields = (
+            "id",
+            "created_at",
+            "updated_at",
+            "created_by",
+            "updated_by",
+        )
 
 
 class LandDocumentChecklistItemCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = LandDocumentChecklistItem
         fields = ("land", "document_kind", "checklist_status", "remarks")
+        read_only_fields = (
+            "id",
+            "created_at",
+            "updated_at",
+            "created_by",
+            "updated_by",
+        )
 
 
 class DocumentVersionSerializer(serializers.ModelSerializer):
@@ -46,6 +65,8 @@ class DocumentVersionSerializer(serializers.ModelSerializer):
     uploaded_by_email = serializers.CharField(
         source="uploaded_by.email", read_only=True
     )
+    created_by_email = serializers.CharField(source="created_by.email", read_only=True)
+    updated_by_email = serializers.CharField(source="updated_by.email", read_only=True)
 
     class Meta:
         model = DocumentVersion
@@ -61,12 +82,20 @@ class DocumentVersionSerializer(serializers.ModelSerializer):
             "uploaded_by",
             "uploaded_by_email",
             "created_at",
+            "updated_at",
+            "created_by",
+            "created_by_email",
+            "updated_by",
+            "updated_by_email",
         )
         read_only_fields = (
             "id",
             "version_number",
             "created_at",
+            "updated_at",
             "uploaded_by",
+            "created_by",
+            "updated_by",
         )
 
 

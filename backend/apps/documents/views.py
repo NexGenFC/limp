@@ -3,7 +3,7 @@
 import uuid
 
 from django.db import transaction
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -12,6 +12,7 @@ from apps.documents.serializers import (
     ConfirmUploadRequestSerializer,
     ConfirmUploadResponseSerializer,
     DocumentVersionSerializer,
+    LandDocumentChecklistItemSerializer,
     PresignedDownloadRequestSerializer,
     PresignedDownloadResponseSerializer,
     PresignedUploadRequestSerializer,
@@ -25,6 +26,60 @@ from apps.documents.services import (
     generate_presigned_upload_url,
 )
 from apps.users.permissions import DocumentPermission
+
+
+class LandDocumentChecklistViewSet(viewsets.ModelViewSet):
+    """CRUD for land document checklist items."""
+
+    serializer_class = LandDocumentChecklistItemSerializer
+    permission_classes = [DocumentPermission]
+    http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
+
+    def get_queryset(self):
+        queryset = LandDocumentChecklistItem.objects.select_related("land").filter(
+            is_deleted=False
+        )
+
+        land_id = self.request.query_params.get("land_id")
+        if land_id:
+            queryset = queryset.filter(land__land_id=land_id)
+
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(
+            created_by=self.request.user,
+            updated_by=self.request.user,
+        )
+
+    def perform_update(self, serializer):
+        serializer.save(updated_by=self.request.user)
+
+    def perform_destroy(self, instance):
+        instance.soft_delete(user=self.request.user)
+
+
+class DocumentVersionViewSet(viewsets.ModelViewSet):
+    """CRUD for document versions."""
+
+    serializer_class = DocumentVersionSerializer
+    permission_classes = [DocumentPermission]
+    http_method_names = ["get", "delete", "head", "options"]
+
+    def get_queryset(self):
+        return (
+            DocumentVersion.objects.filter(is_deleted=False)
+            .select_related("checklist_item__land")
+            .order_by("-version_number")
+        )
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return DocumentVersionSerializer
+        return DocumentVersionSerializer
+
+    def perform_destroy(self, instance):
+        instance.soft_delete(user=self.request.user)
 
 
 class PresignedUploadView(APIView):
@@ -51,7 +106,7 @@ class PresignedUploadView(APIView):
             )
 
         try:
-            checklist_item = LandDocumentChecklistItem.objects.get(
+            LandDocumentChecklistItem.objects.get(
                 land__land_id=land_id,
                 document_kind=document_kind,
                 is_deleted=False,
@@ -141,6 +196,8 @@ class ConfirmUploadView(APIView):
                     "content_type", "application/octet-stream"
                 ),
                 uploaded_by=request.user,
+                created_by=request.user,
+                updated_by=request.user,
             )
 
         response_serializer = ConfirmUploadResponseSerializer(
@@ -197,59 +254,3 @@ class PresignedDownloadView(APIView):
             {"download_url": download_url, "expiry_seconds": expiry}
         )
         return Response(response_serializer.data, status=status.HTTP_200_OK)
-
-
-class LandDocumentChecklistViewSet(APIView):
-    """CRUD for land document checklist items."""
-
-    permission_classes = [DocumentPermission]
-
-    def get(self, request, land_id=None):
-        queryset = LandDocumentChecklistItem.objects.select_related("land").filter(
-            is_deleted=False
-        )
-        if land_id:
-            queryset = queryset.filter(land__land_id=land_id)
-
-        serializer = DocumentVersionSerializer(
-            queryset, many=True, context={"request": request}
-        )
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        from apps.documents.serializers import (
-            LandDocumentChecklistItemCreateSerializer,
-        )
-
-        serializer = LandDocumentChecklistItemCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-
-class DocumentVersionViewSet(APIView):
-    """List versions for a checklist item."""
-
-    permission_classes = [DocumentPermission]
-
-    def get(self, request, checklist_item_id):
-        versions = DocumentVersion.objects.filter(
-            checklist_item_id=checklist_item_id, is_deleted=False
-        ).order_by("-version_number")
-
-        serializer = DocumentVersionSerializer(
-            versions, many=True, context={"request": request}
-        )
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def delete(self, request, version_id):
-        try:
-            version = DocumentVersion.objects.get(id=version_id, is_deleted=False)
-        except DocumentVersion.DoesNotExist:
-            return Response(
-                {"error": "Document version not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        version.soft_delete(user=request.user)
-        return Response(status=status.HTTP_204_NO_CONTENT)

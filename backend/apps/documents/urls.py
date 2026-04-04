@@ -1,4 +1,5 @@
 from django.urls import path
+from rest_framework.routers import DefaultRouter
 
 from apps.documents.views import (
     ConfirmUploadView,
@@ -8,12 +9,28 @@ from apps.documents.views import (
     PresignedUploadView,
 )
 
+router = DefaultRouter()
+router.register(
+    r"documents/checklist", LandDocumentChecklistViewSet, basename="document-checklist"
+)
+router.register(
+    r"documents/versions", DocumentVersionViewSet, basename="document-version"
+)
+
 urlpatterns = [
-    path("documents/presigned-upload", PresignedUploadView.as_view(), name="presigned-upload",),
-    path("documents/confirm-upload", ConfirmUploadView.as_view(), name="confirm-upload",),
-    path("documents/presigned-download", PresignedDownloadView.as_view(), name="presigned-download",),
-    path("documents/checklist", LandDocumentChecklistViewSet.as_view(), name="document-checklist-list",),
-    path("documents/checklist/<str:land_id>", LandDocumentChecklistViewSet.as_view(), name="document-checklist-by-land",),
-    path("documents/versions/<str:checklist_item_id>", DocumentVersionViewSet.as_view(), name="document-versions",),
-    path("documents/versions/delete/<str:version_id>", DocumentVersionViewSet.as_view(), name="document-version-delete",),
-]
+    path(
+        "documents/presigned-upload",
+        PresignedUploadView.as_view(),
+        name="presigned-upload",
+    ),
+    path(
+        "documents/confirm-upload",
+        ConfirmUploadView.as_view(),
+        name="confirm-upload",
+    ),
+    path(
+        "documents/presigned-download",
+        PresignedDownloadView.as_view(),
+        name="presigned-download",
+    ),
+] + router.urls
