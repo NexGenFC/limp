@@ -193,6 +193,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.core.tasks.celery_heartbeat",
         "schedule": crontab(minute="*/15"),
     },
+    "tasks-check-overdue-daily": {
+        "task": "apps.tasks.tasks.check_overdue_tasks",
+        "schedule": crontab(hour=8, minute=0),
+    },
 }
 
 

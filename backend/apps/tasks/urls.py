@@ -1,3 +1,8 @@
-"""Register task / notification ViewSets when implementing Person 3 brief."""
+from rest_framework.routers import DefaultRouter
 
-urlpatterns: list = []
+from apps.tasks.views import TaskViewSet
+
+router = DefaultRouter()
+router.register("tasks", TaskViewSet, basename="task")
+
+urlpatterns = router.urls
