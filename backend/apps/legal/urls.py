@@ -1,10 +1,20 @@
-"""
-API routes: register ViewSets here (DefaultRouter) when implementing Person 1 brief.
+from rest_framework.routers import DefaultRouter
 
-Example:
-    router = DefaultRouter()
-    router.register("legal/cases", LegalCaseViewSet, basename="legal-case")
-    urlpatterns = router.urls
-"""
+from apps.legal.views import (
+    CaseAdvocateViewSet,
+    HearingViewSet,
+    LegalCaseViewSet,
+    PlanOfActionViewSet,
+)
 
-urlpatterns: list = []
+router = DefaultRouter()
+router.register("legal/cases", LegalCaseViewSet, basename="legal-case")
+router.register("legal/hearings", HearingViewSet, basename="legal-hearing")
+router.register("legal/poa", PlanOfActionViewSet, basename="legal-poa")
+router.register(
+    "legal/case-advocates",
+    CaseAdvocateViewSet,
+    basename="legal-case-advocate",
+)
+
+urlpatterns = router.urls

@@ -57,6 +57,44 @@ class IsFounderOrManagement(BasePermission):
         )
 
 
+_LEGAL_VIEW = frozenset(
+    {
+        UserRole.FOUNDER,
+        UserRole.MANAGEMENT,
+        UserRole.IN_HOUSE_ADVOCATE,
+        UserRole.EXTERNAL_ADVOCATE,
+    }
+)
+
+_IN_HOUSE_OR_ABOVE = frozenset(
+    {
+        UserRole.FOUNDER,
+        UserRole.MANAGEMENT,
+        UserRole.IN_HOUSE_ADVOCATE,
+    }
+)
+
+
+class CanViewLegalCases(BasePermission):
+    """List / retrieve legal cases (includes EXTERNAL_ADVOCATE; scope in queryset)."""
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(
+            user and user.is_authenticated and user.role in _LEGAL_VIEW
+        )
+
+
+class IsInHouseAdvocateOrAbove(BasePermission):
+    """FOUNDER, MANAGEMENT, or IN_HOUSE_ADVOCATE (not external)."""
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(
+            user and user.is_authenticated and user.role in _IN_HOUSE_OR_ABOVE
+        )
+
+
 # ---------------------------------------------------------------------------
 # Land Master permissions (PRD §3.2)
 # ---------------------------------------------------------------------------
