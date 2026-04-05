@@ -58,10 +58,7 @@ export default function LoginPage() {
           className="border-border bg-card space-y-4 rounded-xl border p-6 shadow-sm"
         >
           <div className="space-y-1.5">
-            <label
-              htmlFor="email"
-              className="text-sm font-medium leading-none"
-            >
+            <label htmlFor="email" className="text-sm font-medium leading-none">
               Email
             </label>
             <input
@@ -98,12 +95,7 @@ export default function LoginPage() {
             <p className="text-destructive text-sm font-medium">{error}</p>
           )}
 
-          <Button
-            type="submit"
-            className="w-full"
-            size="lg"
-            disabled={loading}
-          >
+          <Button type="submit" className="w-full" size="lg" disabled={loading}>
             {loading ? 'Signing in\u2026' : 'Sign in'}
           </Button>
         </form>

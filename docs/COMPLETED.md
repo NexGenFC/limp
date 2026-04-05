@@ -42,7 +42,7 @@ These eight roles are defined in code (`UserRole` in `backend/apps/users/models.
 - **Keycloak OIDC (optional):** `KeycloakJWTAuthentication` validates Keycloak-issued JWTs alongside SimpleJWT; auto-provisions Django users from Keycloak claims; maps realm roles → `UserRole`; disabled when `KEYCLOAK_SERVER_URL` is empty (CI/local default). Keycloak service in `docker-compose.yml` (port 8180).
 - **Geography API:** District → Taluk → Hobli → Village (read-only ViewSets, filters).
 - **Land Master API:** `LandFile` CRUD, generated `land_id`, soft delete on DELETE.
-- **Phase 1 domain scaffold (backend):** Django apps `legal`, `revenue`, `documents` models added. `tasks` app fully implemented with Task APIs, RBAC, NotificationLog idempotency, and Celery beat schedules (WhatsApp stubbed). Routes composed via `config/api_v1_urls.py`.
+- **Phase 1 domain scaffold (backend):** Django apps `legal`, `revenue` models added. `documents` app foundation fully implemented with S3 pre-signed upload/download services and `LandDocumentChecklist`. `tasks` app foundation fully implemented with Task APIs, RBAC, NotificationLog idempotency, and Celery beat schedules (WhatsApp stubbed). Routes composed via `config/api_v1_urls.py`. **Phase 1 Part 1 is 100% complete; transitioning to Part 2 (Dashboard & KYC).**
 - **RBAC permissions:** `LandPermission` in `apps/users/permissions.py` — enforces PRD §3.2 access matrix on land endpoints. **Pytest suite** covers land RBAC (8 roles), domain scaffolds, Keycloak auth (mocked), health, login — see CI / `pytest -q`.
 - **Audit (OLTP):** `AuditLog` + middleware on mutating `/api/` calls.
 - **Telemetry:** Celery task publishes audit events to Kafka when configured; **no-op** if `KAFKA_BOOTSTRAP_SERVERS` unset.

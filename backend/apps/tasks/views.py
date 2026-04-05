@@ -18,7 +18,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         qs = Task.objects.select_related(
             "land__village__hobli__taluk__district",
             "assigned_to",
-        )
+        ).filter(is_deleted=False)
         user = self.request.user
         if user.role not in _TASK_VIEW_ALL:
             qs = qs.filter(assigned_to=user)

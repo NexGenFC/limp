@@ -56,9 +56,10 @@
 | Celery | Done | `config/celery.py`; heartbeat beat schedule; eager mode default in **development** settings |
 | Tests | Done | `pytest` — health, login, land CRUD + **full RBAC matrix** (all 8 roles), domain app models, Keycloak (mocked) |
 | RBAC on domain APIs | **Done (land)** | Land: Full CRUD for FOUNDER/MANAGEMENT; read-only for IH Advocate/Revenue/Surveyor IH; denied for Ext Advocate/FL Surveyor/Field Staff |
-| Legal / documents (APIs) | **Not done** | RBAC ViewSets, presign per backlog |
-| Tasks / Notifications | **Done** | Task CRUD, Celery logic, NotificationLog idempotency, beat schedules, and WhatsApp stubs |
-| S3 presigned uploads | **Not done** | Not implemented |
+| Legal / documents (APIs) | **Partial** | Document RBAC ViewSets done; Legal APIs pending |
+| Tasks / Notifications | **Part 2** | Dashboard stats API in progress (B10); Foundation Done |
+| S3 presigned uploads | **Part 2** | Identity/KYC and analytics in progress (B16); Foundation Done |
+| Identity / KYC | **In Progress** | IdentityDocument model & masking logic |
 | WhatsApp / SMS | **Done (Stubs)** | Idempotent logger and framework; real APIs pending |
 
 **Quality gates:** `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest`.

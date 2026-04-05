@@ -25,7 +25,15 @@ from apps.documents.services import (
     generate_presigned_download_url,
     generate_presigned_upload_url,
 )
-from apps.users.permissions import DocumentPermission
+from apps.users.models import UserRole
+from apps.users.permissions import DocumentDownloadPermission, DocumentPermission
+
+
+def _scope_qs_by_user(qs, user, land_field="land"):
+    """Limit queryset to assigned lands unless user has full access."""
+    if user.role in {UserRole.FOUNDER, UserRole.MANAGEMENT}:
+        return qs
+    return qs.filter(**{f"{land_field}__tasks__assigned_to": user}).distinct()
 
 
 class LandDocumentChecklistViewSet(viewsets.ModelViewSet):
@@ -44,7 +52,7 @@ class LandDocumentChecklistViewSet(viewsets.ModelViewSet):
         if land_id:
             queryset = queryset.filter(land__land_id=land_id)
 
-        return queryset
+        return _scope_qs_by_user(queryset, self.request.user, land_field="land")
 
     def perform_create(self, serializer):
         serializer.save(
@@ -67,10 +75,13 @@ class DocumentVersionViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "delete", "head", "options"]
 
     def get_queryset(self):
-        return (
+        qs = (
             DocumentVersion.objects.filter(is_deleted=False)
             .select_related("checklist_item__land")
             .order_by("-version_number")
+        )
+        return _scope_qs_by_user(
+            qs, self.request.user, land_field="checklist_item__land"
         )
 
     def get_serializer_class(self):
@@ -106,11 +117,13 @@ class PresignedUploadView(APIView):
             )
 
         try:
-            LandDocumentChecklistItem.objects.get(
+            qs = LandDocumentChecklistItem.objects.filter(
                 land__land_id=land_id,
                 document_kind=document_kind,
                 is_deleted=False,
             )
+            qs = _scope_qs_by_user(qs, request.user, land_field="land")
+            qs.get()
         except LandDocumentChecklistItem.DoesNotExist:
             return Response(
                 {
@@ -162,9 +175,11 @@ class ConfirmUploadView(APIView):
             )
 
         try:
-            checklist_item = LandDocumentChecklistItem.objects.select_related(
-                "land"
-            ).get(id=checklist_item_id, is_deleted=False)
+            qs = LandDocumentChecklistItem.objects.select_related("land").filter(
+                id=checklist_item_id, is_deleted=False
+            )
+            qs = _scope_qs_by_user(qs, request.user, land_field="land")
+            checklist_item = qs.get()
         except LandDocumentChecklistItem.DoesNotExist:
             return Response(
                 {"error": "Checklist item not found"},
@@ -209,7 +224,7 @@ class ConfirmUploadView(APIView):
 class PresignedDownloadView(APIView):
     """Generate a presigned URL for downloading a document."""
 
-    permission_classes = [DocumentPermission]
+    permission_classes = [DocumentDownloadPermission]
 
     def post(self, request):
         serializer = PresignedDownloadRequestSerializer(data=request.data)
@@ -218,9 +233,11 @@ class PresignedDownloadView(APIView):
         version_id = serializer.validated_data["version_id"]
 
         try:
-            version = DocumentVersion.objects.select_related(
-                "checklist_item__land"
-            ).get(id=version_id, is_deleted=False)
+            qs = DocumentVersion.objects.select_related("checklist_item__land").filter(
+                id=version_id, is_deleted=False
+            )
+            qs = _scope_qs_by_user(qs, request.user, land_field="checklist_item__land")
+            version = qs.get()
         except DocumentVersion.DoesNotExist:
             return Response(
                 {"error": "Document version not found"},

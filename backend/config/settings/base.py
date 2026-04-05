@@ -211,3 +211,10 @@ CASSANDRA_KEYSPACE = env("CASSANDRA_KEYSPACE", default="limp")
 KEYCLOAK_SERVER_URL = env("KEYCLOAK_SERVER_URL", default="")
 KEYCLOAK_REALM = env("KEYCLOAK_REALM", default="limp")
 KEYCLOAK_CLIENT_ID = env("KEYCLOAK_CLIENT_ID", default="limp-api")
+
+# --- AWS S3 (optional; empty = disabled, endpoints return 400/503) ---
+AWS_S3_BUCKET_NAME = env("AWS_S3_BUCKET_NAME", default="")
+AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="us-east-1")
+AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID", default="")
+AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY", default="")
+AWS_S3_PRESIGN_EXPIRY_SECONDS = env.int("AWS_S3_PRESIGN_EXPIRY_SECONDS", default=3600)

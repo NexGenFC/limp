@@ -33,21 +33,21 @@ export async function fetchDistricts(): Promise<District[]> {
 
 export async function fetchTaluks(districtId: number): Promise<Taluk[]> {
   const res = await apiClient.get<Envelope<Taluk[]>>(
-    `/taluks/?district=${districtId}`,
+    `/taluks/?district=${districtId}`
   );
   return res.data.data;
 }
 
 export async function fetchHoblis(talukId: number): Promise<Hobli[]> {
   const res = await apiClient.get<Envelope<Hobli[]>>(
-    `/hoblis/?taluk=${talukId}`,
+    `/hoblis/?taluk=${talukId}`
   );
   return res.data.data;
 }
 
 export async function fetchVillages(hobliId: number): Promise<Village[]> {
   const res = await apiClient.get<Envelope<Village[]>>(
-    `/villages/?hobli=${hobliId}`,
+    `/villages/?hobli=${hobliId}`
   );
   return res.data.data;
 }

@@ -31,6 +31,21 @@ def send_task_assignment_notification(self, task_id: str) -> None:
 
     assignee = task.assigned_to
     phone = getattr(assignee, "phone", "") if assignee else ""
+    if not phone:
+        logger.warning(
+            "Task %s assigned to user without phone — skipping WhatsApp", task_id
+        )
+        NotificationLog.objects.create(
+            task=task,
+            channel=NotificationChannel.WHATSAPP,
+            recipient_user=assignee,
+            recipient_phone_e164="",
+            status=NotificationStatus.FAILED,
+            message_summary="User has no phone number",
+            error_detail="Missing phone number",
+        )
+        return
+
     message = f"New task assigned: {task.title}. Due: {task.due_date}"
 
     whatsapp_token = getattr(settings, "WHATSAPP_API_TOKEN", "") or ""

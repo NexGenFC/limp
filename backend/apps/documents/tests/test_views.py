@@ -175,6 +175,35 @@ class TestPresignedDownloadView:
 
         assert response.status_code == 403
 
+    @patch("apps.documents.views.DocumentVersion.objects")
+    @patch("apps.documents.views.generate_presigned_download_url")
+    def test_presigned_download_rbac_readonly_allowed(
+        self,
+        mock_generate,
+        mock_objects,
+        request_factory,
+        settings,
+        mock_user_in_house_advocate,
+    ):
+        settings.AWS_S3_BUCKET_NAME = "test-bucket"
+        mock_generate.return_value = ("https://s3.example.com/download", 3600)
+
+        mock_qs = MagicMock()
+        mock_objects.select_related.return_value.filter.return_value.filter.return_value.distinct.return_value = mock_qs
+        mock_qs.get.return_value = MagicMock(s3_key="test-key")
+
+        request = request_factory.post(
+            "/api/v1/documents/presigned-download",
+            data={"version_id": 1},
+        )
+        force_authenticate(request, user=mock_user_in_house_advocate)
+
+        view = PresignedDownloadView.as_view()
+        response = view(request)
+
+        assert response.status_code == 200
+        assert response.data["download_url"] == "https://s3.example.com/download"
+
 
 @pytest.mark.django_db
 class TestConfirmUploadView:
