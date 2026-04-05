@@ -7,45 +7,137 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('geography', '0001_initial'),
-        ('revenue', '0001_initial'),
+        ("geography", "0001_initial"),
+        ("revenue", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='governmentworkflow',
-            name='kind',
-            field=models.CharField(choices=[('MUTATION', 'Mutation'), ('PHODI', 'Phodi'), ('TIPPANI', 'Tippani'), ('RTC_CORRECTION', 'RTC Correction'), ('CONVERSION', 'Conversion')], max_length=64),
+            model_name="governmentworkflow",
+            name="kind",
+            field=models.CharField(
+                choices=[
+                    ("MUTATION", "Mutation"),
+                    ("PHODI", "Phodi"),
+                    ("TIPPANI", "Tippani"),
+                    ("RTC_CORRECTION", "RTC Correction"),
+                    ("CONVERSION", "Conversion"),
+                ],
+                max_length=64,
+            ),
         ),
         migrations.CreateModel(
-            name='Officer',
+            name="Officer",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('is_deleted', models.BooleanField(db_index=True, default=False)),
-                ('deleted_at', models.DateTimeField(blank=True, null=True)),
-                ('id', models.UUIDField(default=apps.core.models.generate_uuid7, editable=False, primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=255)),
-                ('designation', models.CharField(choices=[('DC', 'District Commissioner'), ('AC', 'Assistant Commissioner'), ('TAHSILDAR', 'Tahsildar'), ('DEPUTY_TAHSILDAR', 'Deputy Tahsildar'), ('VA', 'Village Accountant'), ('RI', 'Revenue Inspector'), ('ADLR', 'Assistant Director of Land Records'), ('DDLR', 'Deputy Director of Land Records')], default='VA', max_length=50)),
-                ('created_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='+', to=settings.AUTH_USER_MODEL)),
-                ('deleted_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL)),
-                ('district', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='revenue_officers', to='geography.district')),
-                ('internal_user', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='revenue_officer_profile', to=settings.AUTH_USER_MODEL)),
-                ('taluk', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='revenue_officers', to='geography.taluk')),
-                ('updated_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='+', to=settings.AUTH_USER_MODEL)),
+                ("created_at", models.DateTimeField(auto_now_add=True, db_index=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("is_deleted", models.BooleanField(db_index=True, default=False)),
+                ("deleted_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=apps.core.models.generate_uuid7,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                (
+                    "designation",
+                    models.CharField(
+                        choices=[
+                            ("DC", "District Commissioner"),
+                            ("AC", "Assistant Commissioner"),
+                            ("TAHSILDAR", "Tahsildar"),
+                            ("DEPUTY_TAHSILDAR", "Deputy Tahsildar"),
+                            ("VA", "Village Accountant"),
+                            ("RI", "Revenue Inspector"),
+                            ("ADLR", "Assistant Director of Land Records"),
+                            ("DDLR", "Deputy Director of Land Records"),
+                        ],
+                        default="VA",
+                        max_length=50,
+                    ),
+                ),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "deleted_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "district",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="revenue_officers",
+                        to="geography.district",
+                    ),
+                ),
+                (
+                    "internal_user",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="revenue_officer_profile",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "taluk",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="revenue_officers",
+                        to="geography.taluk",
+                    ),
+                ),
+                (
+                    "updated_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Revenue Officer',
-                'verbose_name_plural': 'Revenue Officers',
-                'ordering': ['name'],
+                "verbose_name": "Revenue Officer",
+                "verbose_name_plural": "Revenue Officers",
+                "ordering": ["name"],
             },
         ),
         migrations.AddField(
-            model_name='governmentworkflow',
-            name='officer_handling',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='workflows', to='revenue.officer'),
+            model_name="governmentworkflow",
+            name="officer_handling",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="workflows",
+                to="revenue.officer",
+            ),
         ),
     ]
