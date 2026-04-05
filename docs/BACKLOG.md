@@ -16,6 +16,8 @@
 | B2 | Login UI + AuthGuard + Zustand session | April 2026 |
 | B3 | Land Master UI (list, create with geography cascade, detail) | April 2026 |
 | B4 | RoleGuard component + /403 page | April 2026 |
+| B8 | Tasks module + notifications (WhatsApp / SMS stubs) | April 2026 |
+| B9 | Document vault + S3 pre-signed upload/download | April 2026 |
 
 ---
 
@@ -35,9 +37,8 @@ Four non-overlapping backend briefs (branch + PR, `pnpm check` before push): **[
 | ID | Item | Status | Roles / notes |
 |----|------|--------|----------------|
 | B7 | Legal cases, hearings, POA engine, documents vault | **Models scaffolded**; APIs / compliance engine not done | [`docs/backend/ARCHITECTURE_BASE.md`](backend/ARCHITECTURE_BASE.md) |
-| B8 | Tasks module + notifications (WhatsApp / SMS) | **Models scaffolded**; APIs / Celery / channels not done | Tasks app has `Task`, `NotificationLog` |
-| B9 | S3 **pre-signed** upload/download | **Models scaffolded** (`DocumentVersion`); presign endpoints not done | Person 4 brief |
-| B10 | Dashboard aggregation endpoints | Not implemented | **FOUNDER**, **MANAGEMENT** |
+| B10 | Dashboard aggregation endpoints | **In Progress (Person 3)** | **FOUNDER**, **MANAGEMENT** |
+| B16 | Identity/KYC vaulting & Document Percentage | **In Progress (Person 4)** | **FOUNDER**, **MANAGEMENT** |
 | B11 | JWT **case_ids** / **task_ids** scoping for external advocate & freelance surveyor | Partially spec'd (HLD) | **EXTERNAL_ADVOCATE**, **SURVEYOR_FREELANCE** |
 
 ## Product / Phase 1 (frontend)

@@ -256,11 +256,7 @@ export default function NewLandFilePage() {
             )}
 
             <div className="flex gap-3">
-              <Button
-                type="submit"
-                size="lg"
-                disabled={mutation.isPending}
-              >
+              <Button type="submit" size="lg" disabled={mutation.isPending}>
                 {mutation.isPending ? 'Creating\u2026' : 'Create Land File'}
               </Button>
               <Button

@@ -54,9 +54,7 @@ export async function fetchLandFile(id: string): Promise<LandFile> {
   return res.data.data;
 }
 
-export async function createLandFile(
-  data: LandFileCreate,
-): Promise<LandFile> {
+export async function createLandFile(data: LandFileCreate): Promise<LandFile> {
   const res = await apiClient.post<Envelope<LandFile>>('/land/', data);
   return res.data.data;
 }

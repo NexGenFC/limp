@@ -106,3 +106,16 @@ class DocumentPermission(BasePermission):
             return user.role in _LAND_READ
 
         return user.role in _LAND_FULL
+
+
+class DocumentDownloadPermission(BasePermission):
+    """
+    Allows read-roles to make POST requests ONLY for generation of Presigned Download URLs.
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+
+        return user.role in _LAND_READ

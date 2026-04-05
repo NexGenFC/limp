@@ -9,13 +9,7 @@ import { AppShell } from '@/components/app-shell';
 import { fetchLandFile } from '@/lib/api/land';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
-function Field({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
+function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
       <dt className="text-muted-foreground text-xs font-medium uppercase tracking-wider">

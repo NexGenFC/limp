@@ -14,7 +14,7 @@ export interface TokenPair {
 
 export async function loginApi(
   email: string,
-  password: string,
+  password: string
 ): Promise<TokenPair> {
   const res = await apiClient.post<Envelope<TokenPair>>('/auth/login/', {
     email,
@@ -23,9 +23,7 @@ export async function loginApi(
   return res.data.data;
 }
 
-export async function refreshTokenApi(
-  refresh: string,
-): Promise<TokenPair> {
+export async function refreshTokenApi(refresh: string): Promise<TokenPair> {
   const res = await apiClient.post<Envelope<TokenPair>>('/auth/refresh/', {
     refresh,
   });
