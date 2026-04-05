@@ -167,16 +167,15 @@ class PlanOfAction(BaseModel):
         return hearing_date - timedelta(days=2)
 
     def is_overdue(self) -> bool:
-        if self.status == POAStatus.SUBMITTED:
-            return False
-        if self.deadline is None:
-            return False
-        return timezone.localdate() > self.deadline
+        return (
+            self.status != POAStatus.SUBMITTED
+            and timezone.localdate() > self.deadline
+        )
 
     def save(self, *args, **kwargs):
         if self.deadline is None and self.hearing_id:
             h = self.hearing
-            self.deadline = self.compute_deadline(h.hearing_date)
+            self.deadline = h.hearing_date - timedelta(days=2)
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:

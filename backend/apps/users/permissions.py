@@ -57,44 +57,6 @@ class IsFounderOrManagement(BasePermission):
         )
 
 
-_LEGAL_VIEW = frozenset(
-    {
-        UserRole.FOUNDER,
-        UserRole.MANAGEMENT,
-        UserRole.IN_HOUSE_ADVOCATE,
-        UserRole.EXTERNAL_ADVOCATE,
-    }
-)
-
-_IN_HOUSE_OR_ABOVE = frozenset(
-    {
-        UserRole.FOUNDER,
-        UserRole.MANAGEMENT,
-        UserRole.IN_HOUSE_ADVOCATE,
-    }
-)
-
-
-class CanViewLegalCases(BasePermission):
-    """List / retrieve legal cases (includes EXTERNAL_ADVOCATE; scope in queryset)."""
-
-    def has_permission(self, request, view):
-        user = request.user
-        return bool(
-            user and user.is_authenticated and user.role in _LEGAL_VIEW
-        )
-
-
-class IsInHouseAdvocateOrAbove(BasePermission):
-    """FOUNDER, MANAGEMENT, or IN_HOUSE_ADVOCATE (not external)."""
-
-    def has_permission(self, request, view):
-        user = request.user
-        return bool(
-            user and user.is_authenticated and user.role in _IN_HOUSE_OR_ABOVE
-        )
-
-
 # ---------------------------------------------------------------------------
 # Land Master permissions (PRD §3.2)
 # ---------------------------------------------------------------------------
@@ -119,3 +81,62 @@ class LandPermission(BasePermission):
             return user.role in _LAND_READ
 
         return user.role in _LAND_FULL
+
+
+# ---------------------------------------------------------------------------
+# Legal module permissions (PRD §3.2; row scope in ViewSet ``get_queryset()``)
+# ---------------------------------------------------------------------------
+
+_LEGAL_VIEW = frozenset(
+    {
+        UserRole.FOUNDER,
+        UserRole.MANAGEMENT,
+        UserRole.IN_HOUSE_ADVOCATE,
+        UserRole.EXTERNAL_ADVOCATE,
+    }
+)
+
+_IN_HOUSE_OR_ABOVE = frozenset(
+    {
+        UserRole.FOUNDER,
+        UserRole.MANAGEMENT,
+        UserRole.IN_HOUSE_ADVOCATE,
+    }
+)
+
+
+class CanViewLegalCases(BasePermission):
+    """
+    Legal module — read access (list/retrieve, and aligned read paths).
+
+    * Allow — FOUNDER, MANAGEMENT, IN_HOUSE_ADVOCATE, EXTERNAL_ADVOCATE
+    * Deny — REVENUE_TEAM, SURVEYOR_INHOUSE, SURVEYOR_FREELANCE, FIELD_STAFF,
+             and any role not listed above
+
+    EXTERNAL_ADVOCATE must only see assigned data; enforce in
+    ``LegalCaseViewSet.get_queryset()`` (and related querysets).
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+        return user.role in _LEGAL_VIEW
+
+
+class IsInHouseAdvocateOrAbove(BasePermission):
+    """
+    Legal module — create/update and advocate assignment (in-house and above).
+
+    * Allow — FOUNDER, MANAGEMENT, IN_HOUSE_ADVOCATE
+    * Deny — EXTERNAL_ADVOCATE, REVENUE_TEAM, surveyors, FIELD_STAFF, others
+
+    Use with ``IsAuthenticated``. Deletes that require only founder/management
+    stay on ``IsFounderOrManagement`` in ViewSets.
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+        return user.role in _IN_HOUSE_OR_ABOVE

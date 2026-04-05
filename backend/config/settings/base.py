@@ -193,6 +193,14 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.core.tasks.celery_heartbeat",
         "schedule": crontab(minute="*/15"),
     },
+    "check-poa-overdue": {
+        "task": "apps.legal.tasks.check_poa_overdue",
+        "schedule": crontab(hour=8, minute=0),
+    },
+    "create-poa-compliance-tasks": {
+        "task": "apps.legal.tasks.create_poa_compliance_tasks",
+        "schedule": crontab(hour=8, minute=5),
+    },
 }
 
 
