@@ -21,3 +21,4 @@ frontend/.turbo/
 local/*
 venv
 *.env
+push.sh
