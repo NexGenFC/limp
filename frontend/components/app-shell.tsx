@@ -19,7 +19,13 @@ const ROLE_LABEL: Record<string, string> = {
   FIELD_STAFF: 'Field Staff',
 };
 
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+function NavLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const active = pathname === href || pathname.startsWith(`${href}/`);
   return (
@@ -27,7 +33,7 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
       href={href}
       className={cn(
         buttonVariants({ variant: active ? 'secondary' : 'ghost' }),
-        'justify-start',
+        'justify-start'
       )}
     >
       {children}

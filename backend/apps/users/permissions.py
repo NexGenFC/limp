@@ -81,3 +81,41 @@ class LandPermission(BasePermission):
             return user.role in _LAND_READ
 
         return user.role in _LAND_FULL
+
+
+# ---------------------------------------------------------------------------
+# Document permissions (PRD §7)
+# ---------------------------------------------------------------------------
+
+
+class DocumentPermission(BasePermission):
+    """
+    Document vault access:
+
+    * Full access (upload, download, manage) — FOUNDER, MANAGEMENT
+    * Read-only — IN_HOUSE_ADVOCATE, REVENUE_TEAM, SURVEYOR_INHOUSE
+    * No access — EXTERNAL_ADVOCATE, SURVEYOR_FREELANCE, FIELD_STAFF
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+
+        if request.method in SAFE_METHODS:
+            return user.role in _LAND_READ
+
+        return user.role in _LAND_FULL
+
+
+class DocumentDownloadPermission(BasePermission):
+    """
+    Allows read-roles to make POST requests ONLY for generation of Presigned Download URLs.
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+
+        return user.role in _LAND_READ

@@ -1,7 +1,4 @@
-import axios, {
-  type AxiosError,
-  type InternalAxiosRequestConfig,
-} from 'axios';
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
 import { getApiBaseUrl } from '@/lib/env';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -72,7 +69,7 @@ apiClient.interceptors.response.use(
         const res = await axios.post(
           `${getApiBaseUrl()}/api/v1/auth/refresh/`,
           { refresh },
-          { headers: { 'Content-Type': 'application/json' } },
+          { headers: { 'Content-Type': 'application/json' } }
         );
         const data = res.data?.data ?? res.data;
         const newAccess: string = data.access;
@@ -94,5 +91,5 @@ apiClient.interceptors.response.use(
       useAuthStore.getState().clearSession();
     }
     return Promise.reject(error);
-  },
+  }
 );
