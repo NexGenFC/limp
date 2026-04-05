@@ -4,8 +4,8 @@ from .models import Officer, GovernmentWorkflow
 
 class OfficerSerializer(serializers.ModelSerializer):
     """
-    Serializer for the Revenue Officer model (§3.1).
-    Includes the human-readable designation for the frontend.
+    Serializer for the Revenue Officer model.
+    Includes designation display and audit fields for the LIMP standard.
     """
 
     designation_display = serializers.CharField(
@@ -14,7 +14,8 @@ class OfficerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Officer
-        fields = [
+        # Fix Minor 4 & 5: Use tuples and consistent naming
+        fields = (
             "id",
             "name",
             "designation",
@@ -22,13 +23,25 @@ class OfficerSerializer(serializers.ModelSerializer):
             "district",
             "taluk",
             "internal_user",
-        ]
+            "created_at",
+            "updated_at",
+            "created_by",
+            "updated_by",  # Fix 9: Added audit fields
+        )
+        # Fix 9: Define read-only fields strictly
+        read_only_fields = (
+            "id",
+            "created_at",
+            "updated_at",
+            "created_by",
+            "updated_by",
+        )
 
 
 class GovernmentWorkflowSerializer(serializers.ModelSerializer):
     """
-    Serializer for the Government Workflow model (§3.2).
-    Includes the computed 'days_pending' logic.
+    Serializer for the Government Workflow model.
+    Exposes the computed days_pending logic and audit trail.
     """
 
     days_pending = serializers.ReadOnlyField()
@@ -37,7 +50,8 @@ class GovernmentWorkflowSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = GovernmentWorkflow
-        fields = [
+        # Fix 9: Added audit fields and used tuples for project consistency
+        fields = (
             "id",
             "land",
             "kind",
@@ -50,4 +64,13 @@ class GovernmentWorkflowSerializer(serializers.ModelSerializer):
             "remarks",
             "created_at",
             "updated_at",
-        ]
+            "created_by",
+            "updated_by",
+        )
+        read_only_fields = (
+            "id",
+            "created_at",
+            "updated_at",
+            "created_by",
+            "updated_by",
+        )
