@@ -7,11 +7,17 @@ from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.documents.models import DocumentVersion, LandDocumentChecklistItem
+from apps.documents.models import (
+    DocumentVersion,
+    IdentityDocument,
+    LandDocumentChecklistItem,
+)
 from apps.documents.serializers import (
     ConfirmUploadRequestSerializer,
     ConfirmUploadResponseSerializer,
     DocumentVersionSerializer,
+    IdentityDocumentCreateSerializer,
+    IdentityDocumentSerializer,
     LandDocumentChecklistItemSerializer,
     PresignedDownloadRequestSerializer,
     PresignedDownloadResponseSerializer,
@@ -21,12 +27,18 @@ from apps.documents.serializers import (
 from apps.documents.services import (
     S3ServiceError,
     _is_configured,
+    calculate_land_completion,
     check_object_exists,
     generate_presigned_download_url,
     generate_presigned_upload_url,
+    get_overall_completion_stats,
 )
 from apps.users.models import UserRole
-from apps.users.permissions import DocumentDownloadPermission, DocumentPermission
+from apps.users.permissions import (
+    DocumentDownloadPermission,
+    DocumentPermission,
+    IdentityDocumentPermission,
+)
 
 
 def _scope_qs_by_user(qs, user, land_field="land"):
@@ -271,3 +283,70 @@ class PresignedDownloadView(APIView):
             {"download_url": download_url, "expiry_seconds": expiry}
         )
         return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+
+class IdentityDocumentViewSet(viewsets.ModelViewSet):
+    """CRUD for identity documents (KYC) - restricted to FOUNDER and MANAGEMENT."""
+
+    serializer_class = IdentityDocumentSerializer
+    permission_classes = [IdentityDocumentPermission]
+    http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
+
+    def get_queryset(self):
+        queryset = IdentityDocument.objects.select_related("land").filter(
+            is_deleted=False
+        )
+
+        land_id = self.request.query_params.get("land_id")
+        if land_id:
+            queryset = queryset.filter(land__land_id=land_id)
+
+        document_type = self.request.query_params.get("document_type")
+        if document_type:
+            queryset = queryset.filter(document_type=document_type)
+
+        return queryset
+
+    def get_serializer_class(self):
+        if self.action in ["create", "update", "partial_update"]:
+            return IdentityDocumentCreateSerializer
+        return IdentityDocumentSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(
+            created_by=self.request.user,
+            updated_by=self.request.user,
+        )
+
+    def perform_update(self, serializer):
+        serializer.save(updated_by=self.request.user)
+
+    def perform_destroy(self, instance):
+        instance.soft_delete(user=self.request.user)
+
+
+class LandCompletionStatsView(APIView):
+    """API to get completion stats for lands."""
+
+    permission_classes = [IdentityDocumentPermission]
+
+    def get(self, request):
+        land_id = request.query_params.get("land_id")
+        if land_id:
+            try:
+                completion = calculate_land_completion(land_id)
+                return Response(
+                    {"land_id": land_id, "completion": completion},
+                    status=status.HTTP_200_OK,
+                )
+            except ValueError as e:
+                return Response(
+                    {"error": str(e)},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+        avg_completion = get_overall_completion_stats()
+        return Response(
+            {"average_completion": avg_completion},
+            status=status.HTTP_200_OK,
+        )

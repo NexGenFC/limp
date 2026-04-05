@@ -89,3 +89,51 @@ class DocumentVersion(BaseModel):
 
     def __str__(self) -> str:
         return f"v{self.version_number} {self.checklist_item}"
+
+
+class IdentityDocumentType(models.TextChoices):
+    AADHAAR = "AADHAAR", "Aadhaar"
+    PAN = "PAN", "PAN"
+    PASSPORT = "PASSPORT", "Passport"
+    DRIVING_LICENSE = "DRIVING_LICENSE", "Driving License"
+    VOTER_ID = "VOTER_ID", "Voter ID"
+    OTHER = "OTHER", "Other"
+
+
+class IdentityDocument(BaseModel):
+    """Sensitive identity documents (KYC) with strict RBAC."""
+
+    land = models.ForeignKey(
+        "land.LandFile",
+        on_delete=models.PROTECT,
+        related_name="identity_documents",
+    )
+    document_type = models.CharField(
+        max_length=32, choices=IdentityDocumentType.choices
+    )
+    document_number = models.CharField(max_length=64)
+    s3_key = models.CharField(max_length=1024, blank=True)
+    original_filename = models.CharField(max_length=512, blank=True)
+    content_type = models.CharField(max_length=128, blank=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="identity_documents_uploaded",
+    )
+
+    class Meta:
+        ordering = ["document_type"]
+        verbose_name = "Identity document"
+        verbose_name_plural = "Identity documents"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["land", "document_type"],
+                condition=models.Q(is_deleted=False),
+                name="identity_doc_unique_land_type_active",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.land.land_id} — {self.document_type}"

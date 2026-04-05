@@ -7,6 +7,7 @@ from apps.documents.services import (
     generate_presigned_download_url,
     generate_presigned_upload_url,
     check_object_exists,
+    get_overall_completion_stats,
 )
 
 
@@ -102,3 +103,42 @@ class TestS3Service:
         result = check_object_exists("test/key/nonexistent.pdf")
 
         assert result is False
+
+
+class TestCompletionStatsService:
+    @patch("apps.land.models.LandFile.objects")
+    def test_calculate_land_completion_land_not_found(self, mock_land_objects):
+        from apps.documents.services import calculate_land_completion
+        from apps.land.models import LandFile
+
+        mock_land_objects.get.side_effect = LandFile.DoesNotExist
+
+        with pytest.raises(ValueError, match="Land with land_id"):
+            calculate_land_completion("NONEXISTENT-001")
+
+    @patch("apps.land.models.LandFile.objects")
+    def test_calculate_land_completion_no_items(self, mock_land_objects, settings):
+        from apps.documents.services import calculate_land_completion
+
+        settings.AWS_S3_BUCKET_NAME = None
+
+        land = MagicMock()
+        land.land_id = "LIMP-2024-0001"
+        mock_land_objects.get.return_value = land
+
+        mock_items = MagicMock()
+        mock_items.exclude.return_value.count.return_value = 0
+
+        with patch(
+            "apps.documents.services.LandDocumentChecklistItem.objects.filter",
+            return_value=mock_items,
+        ):
+            result = calculate_land_completion("LIMP-2024-0001")
+            assert result == 0.0
+
+    @patch("apps.land.models.LandFile.objects")
+    def test_get_overall_completion_stats_no_lands(self, mock_land_objects):
+        mock_land_objects.filter.return_value.exists.return_value = False
+
+        result = get_overall_completion_stats()
+        assert result == 0.0

@@ -4,6 +4,8 @@ from rest_framework.routers import DefaultRouter
 from apps.documents.views import (
     ConfirmUploadView,
     DocumentVersionViewSet,
+    IdentityDocumentViewSet,
+    LandCompletionStatsView,
     LandDocumentChecklistViewSet,
     PresignedDownloadView,
     PresignedUploadView,
@@ -15,6 +17,9 @@ router.register(
 )
 router.register(
     r"documents/versions", DocumentVersionViewSet, basename="document-version"
+)
+router.register(
+    r"identity-documents", IdentityDocumentViewSet, basename="identity-document"
 )
 
 urlpatterns = [
@@ -32,5 +37,10 @@ urlpatterns = [
         "documents/presigned-download",
         PresignedDownloadView.as_view(),
         name="presigned-download",
+    ),
+    path(
+        "documents/completion-stats",
+        LandCompletionStatsView.as_view(),
+        name="completion-stats",
     ),
 ] + router.urls

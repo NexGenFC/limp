@@ -6,6 +6,8 @@ from apps.documents.views import (
     PresignedUploadView,
     PresignedDownloadView,
     ConfirmUploadView,
+    IdentityDocumentViewSet,
+    LandCompletionStatsView,
 )
 from apps.users.models import UserRole
 
@@ -246,3 +248,97 @@ class TestConfirmUploadView:
         response = view(request)
 
         assert response.status_code == 403
+
+
+@pytest.mark.django_db
+class TestIdentityDocumentViewSet:
+    def test_identity_document_rbac_forbidden_role(
+        self, request_factory, mock_user_field_staff
+    ):
+        request = request_factory.get("/api/v1/identity-documents/")
+        force_authenticate(request, user=mock_user_field_staff)
+
+        view = IdentityDocumentViewSet.as_view({"get": "list"})
+        response = view(request)
+
+        assert response.status_code == 403
+
+    def test_identity_document_rbac_allowed_role(self, request_factory, mock_user):
+        with patch("apps.documents.views.IdentityDocument.objects") as mock_qs:
+            mock_queryset = MagicMock()
+            mock_qs.select_related.return_value.filter.return_value = mock_queryset
+
+            request = request_factory.get("/api/v1/identity-documents/")
+            force_authenticate(request, user=mock_user)
+
+            view = IdentityDocumentViewSet.as_view({"get": "list"})
+            response = view(request)
+
+            assert response.status_code == 200
+
+    @patch("apps.documents.views.IdentityDocument.objects")
+    def test_identity_document_list_filter_by_land_id(
+        self, mock_objects, request_factory, mock_user
+    ):
+        mock_queryset = MagicMock()
+        mock_objects.select_related.return_value.filter.return_value = mock_queryset
+
+        request = request_factory.get(
+            "/api/v1/identity-documents/?land_id=LIMP-2024-0001"
+        )
+        force_authenticate(request, user=mock_user)
+
+        view = IdentityDocumentViewSet.as_view({"get": "list"})
+        view(request)
+
+        mock_queryset.filter.assert_called()
+
+
+@pytest.mark.django_db
+class TestLandCompletionStatsView:
+    @patch("apps.documents.views.calculate_land_completion")
+    def test_completion_stats_by_land_id(
+        self, mock_calculate, request_factory, mock_user
+    ):
+        mock_calculate.return_value = 0.75
+
+        request = request_factory.get(
+            "/api/v1/documents/completion-stats?land_id=LIMP-2024-0001"
+        )
+        force_authenticate(request, user=mock_user)
+
+        view = LandCompletionStatsView.as_view()
+        response = view(request)
+
+        assert response.status_code == 200
+        assert response.data["land_id"] == "LIMP-2024-0001"
+        assert response.data["completion"] == 0.75
+
+    @patch("apps.documents.views.calculate_land_completion")
+    def test_completion_stats_land_not_found(
+        self, mock_calculate, request_factory, mock_user
+    ):
+        mock_calculate.side_effect = ValueError("Land not found")
+
+        request = request_factory.get(
+            "/api/v1/documents/completion-stats?land_id=INVALID"
+        )
+        force_authenticate(request, user=mock_user)
+
+        view = LandCompletionStatsView.as_view()
+        response = view(request)
+
+        assert response.status_code == 404
+
+    @patch("apps.documents.views.get_overall_completion_stats")
+    def test_overall_completion_stats(self, mock_overall, request_factory, mock_user):
+        mock_overall.return_value = 0.65
+
+        request = request_factory.get("/api/v1/documents/completion-stats")
+        force_authenticate(request, user=mock_user)
+
+        view = LandCompletionStatsView.as_view()
+        response = view(request)
+
+        assert response.status_code == 200
+        assert response.data["average_completion"] == 0.65

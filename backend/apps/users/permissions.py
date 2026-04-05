@@ -119,3 +119,16 @@ class DocumentDownloadPermission(BasePermission):
             return False
 
         return user.role in _LAND_READ
+
+
+class IdentityDocumentPermission(BasePermission):
+    """
+    Identity/KYC document access - strictly restricted to FOUNDER and MANAGEMENT only.
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+
+        return user.role in _LAND_FULL

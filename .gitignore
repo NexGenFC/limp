@@ -19,3 +19,6 @@ backend/.venv/
 backend/staticfiles/
 frontend/.turbo/
 local/*
+venv
+*.env
+push.sh
