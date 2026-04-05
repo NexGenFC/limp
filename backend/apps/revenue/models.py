@@ -103,7 +103,9 @@ class GovernmentWorkflow(BaseModel):  # Fix 1: Correct Base Class
         verbose_name_plural = "Government workflows"
         constraints = [
             models.UniqueConstraint(
-                fields=["land", "kind"], name="unique_active_workflow_per_land"
+                fields=["land", "kind"],
+                condition=models.Q(is_deleted=False),
+                name="unique_active_workflow_per_land",
             )
         ]
 

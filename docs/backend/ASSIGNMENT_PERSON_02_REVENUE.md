@@ -1,10 +1,13 @@
-# Backend assignment — Person 2: Revenue & government workflow module
+# Backend assignment — Person 2: Revenue & Automation (Part 2)
 
 **Owner:** Person 2 (Revenue / government workflows)  
 **Repo:** LIMP monorepo — work only under `backend/` for this brief.  
-**Product context:** Client §5, PRD revenue workflow, [`docs/HLD.md`](../HLD.md) module map and ERD (revenue side).
+**Product context:** Client §5, PRD revenue workflow, HLD §2 (Revenue Module).
 
-**Base in repo:** `apps.revenue` with `GovernmentWorkflow`, `WorkflowKind` / `WorkflowStatus`, partial unique per `(land, kind)`. Extend via **new migrations**; APIs in `apps/revenue/urls.py`. [`ARCHITECTURE_BASE.md`](ARCHITECTURE_BASE.md).
+**Core App:** `apps.revenue`  
+**Integration Apps:** `apps.tasks` (Automation), `apps.land` (Anchor), `apps.geography` (Jurisdiction).
+
+---
 
 ## 0. Start here (fully self-contained)
 
@@ -12,169 +15,88 @@
 
 | Area | Path | Your touch |
 |------|------|------------|
-| Your app | `backend/apps/revenue/` | **Primary** |
-| Land anchor | `backend/apps/land/` | FK target only (`land.LandFile`) |
-| Geography | `backend/apps/geography/` | FKs for officer jurisdiction (reuse tables; do not duplicate) |
-| Users | `backend/apps/users/` | RBAC patterns; optional FK to `User` for in-house revenue officer |
+| Your app | `backend/apps/revenue/` | **Primary** — services, signals, analytics |
+| Integration | `backend/apps/tasks/` | Consumer only (create tasks via service) |
+| Geography | `backend/apps/geography/` | FK reference only |
 
-### 0.2 Documentation checklist (read before coding)
-
-1. **This entire file.**
-2. [`docs/rules.md`](../rules.md).
-3. [`docs/PRD.md`](../PRD.md) — revenue / government workflow.
-4. [`docs/HLD.md`](../HLD.md) — revenue module on land file.
-5. [`docs/backend/ARCHITECTURE_BASE.md`](ARCHITECTURE_BASE.md) — `government_workflows` on `LandFile`.
-6. [`docs/COMPLETED.md`](../COMPLETED.md), [`docs/BACKLOG.md`](../BACKLOG.md), [`docs/IMPLEMENTATION_STATUS.md`](../IMPLEMENTATION_STATUS.md).
-7. [`README.md`](../../README.md) — Path A, `pnpm check`.
-8. [`docs/COCKROACHDB_MIGRATIONS.md`](../COCKROACHDB_MIGRATIONS.md) — **required** before adding indexes / constraints (you already have partial unique on `(land, kind)` in `0001`).
-9. [`docs/DEV_DATABASE.md`](../DEV_DATABASE.md) — if `migrate` fails after pull.
-
-### 0.3 Machine setup: first time and after every `git pull`
+### 0.2 Machine setup (New Session)
 
 ```bash
+# From repo root
 git checkout main && git pull --rebase origin main
-cp .env.example .env   # once if needed
-
 cd backend && uv sync --all-groups && uv run python manage.py migrate
-cd backend && uv run python manage.py seed_demo_geography   # optional
-
-cd backend && uv run python manage.py runserver 0.0.0.0:8000
+uv run pytest apps/revenue/tests/test_revenue_rbac.py  # Verify Part 1 foundation
 ```
 
-**If `migrate` fails:** delete `backend/db.sqlite3` and re-run `migrate` — **[`docs/DEV_DATABASE.md`](../DEV_DATABASE.md)** explains why (schema / migration graph drift).
+---
 
-Before PR: from repo root — `pnpm install && pnpm check` (optional `pnpm run ci`).
+## 1. Relevant Schema Reference
 
-### 0.4 Integration map (Revenue ↔ rest of LIMP)
+### 1.1 `apps.revenue.models.Officer`
+- Already implemented with `BaseModel` (UUIDv7).
+- Linked to `District`, `Taluk`, and `User` (internal_user).
 
-| Connection | Detail |
-|------------|--------|
-| **Land** | FK **`land`** → `land.LandFile`. Reverse: `land.government_workflows`. |
-| **Geography** | Link officers to `District` / `Taluk` / … as needed; read [`backend/apps/geography/models.py`](../../backend/apps/geography/models.py). |
-| **Legal / tasks / documents** | **No dependency** for your first PR; do not edit those apps. |
-| **URLs** | [`apps/revenue/urls.py`](../../backend/apps/revenue/urls.py) + `DefaultRouter`; wired via [`config/api_v1_urls.py`](../../backend/config/api_v1_urls.py). |
-
-### 0.5 Code patterns to mirror
-
-Same as Person 1 brief §0.5: [`apps/land/views.py`](../../backend/apps/land/views.py), [`apps/land/serializers.py`](../../backend/apps/land/serializers.py), [`apps/users/permissions.py`](../../backend/apps/users/permissions.py).
-
-### 0.6 Local verification
-
-- http://localhost:8000/api/v1/health/
-- http://localhost:8000/api/schema/swagger/
+### 1.2 `apps.revenue.models.GovernmentWorkflow`
+- Tracked per `land` and `kind` (Mutation, Phodi, etc.).
+- Includes `status` (APPLIED, IN_PROGRESS, COMPLETED).
+- Includes `days_pending` computed property.
 
 ---
 
-## 1. Mandatory reading (before you write code)
+## 2. Your Scope — Current Status
 
-1. [`docs/rules.md`](../rules.md) — soft delete, RBAC, envelope, `AuditedModel` / `SoftDeleteModel`, FK naming `land` for `LandFile`.
-2. [`docs/HLD.md`](../HLD.md) — how revenue workflows hang off the land master file.
-3. [`backend/apps/land/models.py`](../../backend/apps/land/models.py) — `LandFile` primary key and status patterns.
-4. [`backend/apps/users/models.py`](../../backend/apps/users/models.py) — `UserRole`; [`permissions.py`](../../backend/apps/users/permissions.py) — extend consistently for revenue endpoints.
+### ✅ Phase 1 Part 1 — COMPLETED & SYNCED
+- Officer and GovernmentWorkflow models are 100% standard-compliant.
+- ViewSets with mandatory audit/soft-delete overrides are live.
+- RBAC for `REVENUE_TEAM` is enforced.
+- Migration history is consolidated into a clean initial state.
 
----
+### 🚀 Phase 1 Part 2 — Revenue Automation (B17) — NEW
+**Goal:** Automate internal follow-ups and provide hooks for the Founder Dashboard.
 
-## 2. Toolchain you must use
+#### 2.1 Requirements — Task Automation
+- **Logic:** When a `GovernmentWorkflow` status changes to `IN_PROGRESS` or `COMPLETED`, automatically create a `Task` in the `apps.tasks` module.
+- **Payload Structure (Tasks):**
+  - `title`: e.g., "Mutation Follow-up: [Land ID]"
+  - `task_type`: `REVENUE_FOLLOWUP`
+  - `assigned_to`: `officer_handling.internal_user` (if exists) or the `created_by` user.
+  - `due_date`: `applied_on + 30 days`.
+- **Implementation:** Implement a service `sync_workflow_tasks(workflow_id)` in `apps/revenue/services.py`. Call this from the ViewSet's `perform_update`. **Service Layer is mandatory.**
 
-| Tool | Requirement |
-|------|----------------|
-| **Python** | **3.12+** |
-| **uv** | `cd backend && uv sync --all-groups`; run everything with **`uv run`** |
-| **Node / pnpm** | **Node 22+**, **pnpm 10** (`pnpm@10.33.0` in root `package.json`) |
-| **Git** | Feature branch + PR |
-
----
-
-## 3. Your scope (what to build)
-
-Work in the **existing** app **`apps.revenue`**.
-
-### 3.1 Reference data (officers)
-
-Model **government / revenue officers** relevant to the client brief (DC, AC, Tahsildar, Deputy Tahsildar, VA, RI, ADLR/DDLR, etc.):
-
-- Prefer **normalization**: officer as an entity (name, designation enum, jurisdiction FKs to geography where applicable) rather than free text only.
-- Optional link to **internal** revenue officer user (`FK` to `users.User`, nullable) for “in-house revenue officer” mapping.
-
-### 3.2 Workflow instances per land
-
-For each `land`, track multiple workflow rows for types such as:
-
-- Mutation, Phodi, Tippani, RTC correction, Conversion (use enums; extensible via future migrations).
-
-Each workflow row should support:
-
-- Current status (enum), date applied, **officer handling** (FK), **days pending** (computed in serializer or DB-generated field — document), remarks, audit fields.
-
-### 3.3 API & RBAC
-
-- Authenticated API under `/api/v1/...` with DRF ViewSets, explicit `get_queryset()` filtering `is_deleted=False`.
-- **FOUNDER** / **MANAGEMENT**: full CRUD as per PRD for this module.
-- **REVENUE_TEAM**: read/write as per PRD (if PRD says full operational access, implement; otherwise read-only — **quote PRD section in PR description**).
-- **EXTERNAL_ADVOCATE**, **SURVEYOR_FREELANCE**, **FIELD_STAFF**: **no access** to this module (403).
-- Other roles: align with PRD §3.2; default to deny if unclear and note in PR.
-
-Register ViewSets in **`apps/revenue/urls.py`** (`DefaultRouter`); it is already wired from [`config/api_v1_urls.py`](../../backend/config/api_v1_urls.py).
-
-### 3.4 Tests
-
-- CRUD happy paths for authorized roles.
-- At least one test proving **EXTERNAL_ADVOCATE** (or FIELD_STAFF) receives **403** on create/list.
-- Test **days pending** calculation with fixed dates if implemented as property.
+#### 2.2 Requirements — Analytics Hook (B10)
+- **Logic:** Provide a clean data hook for the Dashboard (Person 3).
+- **Service:** Implement `get_revenue_kpi_stats()` in `apps/revenue/services.py`.
+- **Returned Data:**
+  ```python
+  {
+      "pending_total": int, 
+      "avg_days_pending": float, 
+      "by_kind": {"PHODI": 2, "MUTATION": 5}
+  }
+  ```
 
 ---
 
-## 4. Files and directories
+## 3. Coordination & Conflicts
 
-### 4.1 You own
-
-- `backend/apps/revenue/**` — entire package (already registered in settings and `api_v1_urls`)
-- New migrations `0002_…` onward as needed
-
-### 4.2 You must NOT touch
-
-- `backend/apps/legal/**`, `backend/apps/tasks/**`, `backend/apps/documents/**`
-- `frontend/**`
-
-### 4.3 Geography linkage
-
-- Reuse existing `District` / `Taluk` / `Hobli` / `Village` FKs where officer jurisdiction requires it; do **not** duplicate geography tables.
+- **Coordination:** Person 3 (Dashboard) will call your `get_revenue_kpi_stats()` function. Ensure the function signature is stable.
+- **Conflict Avoidance:** 
+  - **Do NOT** import `apps.tasks.models.Task` directly in your `models.py` (prevents circular imports). 
+  - **Do NOT** modify `apps.tasks` logic. Only create task records using their standard serializer or model via `django.apps.apps.get_model`.
+  - **Consistency:** Maintain `BaseModel` usage and `PROTECT` on all new FKs.
 
 ---
 
-## 5. Commands you must run before opening a PR
+## 4. Verification
 
-```bash
-cd backend && uv sync --all-groups
-cd backend && uv run ruff check .
-cd backend && uv run ruff format .
-cd backend && uv run pytest -q
-```
-
-From **repo root**:
-
-```bash
-pnpm install
-pnpm check
-```
-
-**All must pass before push.** Optional: `pnpm run ci` for production build parity.
+1. **Unit Test:** `apps/revenue/tests/test_automation.py`
+   - Assert `sync_workflow_tasks` correctly creates a `Task` in DB when triggered.
+   - Assert `get_revenue_kpi_stats()` returns accurate counts for Dashboard.
+2. **Commands:**
+   ```bash
+   cd backend && uv run pytest apps/revenue/tests/test_automation.py
+   ```
 
 ---
 
-## 6. Git workflow (required)
-
-1. `git checkout main && git pull --rebase origin main`
-2. `git checkout -b feature/backend-person2-revenue`
-3. Push and open **PR to `main`**.
-
----
-
-## 7. Merge / coordination notes
-
-- No dependency on Person 1 or 4 for a minimal merge; only `LandFile` FK.
-- Read [`docs/COCKROACHDB_MIGRATIONS.md`](../COCKROACHDB_MIGRATIONS.md) before adding unusual indexes or constraints.
-
----
-
-*Brief version: April 2026 — Phase 1 foundation.*
+*Brief version: April 2026 — Part 2 Update.*

@@ -245,6 +245,11 @@ Mutating API requests write **`audit_log` in the primary database (CockroachDB i
 | task → land_file | Many-to-One | Optional FK (some admin tasks not land-linked) |
 | task → user (assigned_to) | Many-to-One | Mandatory — every task must be assigned |
 | audit_log → user | Many-to-One | Mandatory — every audit entry has an actor |
+| Legal / documents (APIs) | **Partial** | Document RBAC ViewSets done; Legal APIs pending |
+| Tasks / Notifications | **Part 2** | Dashboard stats API in progress (B10); Foundation Done |
+| Revenue / Workflows | **Part 2** | Automation & Task hooks in progress (B17); Part 1 Done |
+| S3 presigned uploads | **Part 2** | Identity/KYC and analytics in progress (B16); Foundation Done |
+| Identity / KYC | **In Progress** | IdentityDocument model & masking logic |
 
 ---
 
@@ -445,25 +450,26 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
 ## 8. Phase 1 Deliverable Checklist
 
 ### Backend
-- [ ] Django project scaffolded with all apps created
-- [ ] **CockroachDB** (or PostgreSQL-compatible `DATABASE_URL`) connected and migrations running
-- [ ] Custom User model with role field
-- [ ] JWT auth endpoints (login, refresh, logout)
-- [ ] Geography master data seeded (Karnataka districts/taluks/hoblis/villages)
-- [ ] Land Master CRUD API with soft delete and audit log
-- [ ] Legal Case CRUD API with external advocate scoping
-- [ ] Hearing CRUD API with POA compliance engine
-- [ ] Document Vault API with S3 pre-signed upload/download
-- [ ] Document version tracking
-- [ ] Task CRUD API with role-based visibility
-- [ ] Audit log middleware capturing all mutations
-- [ ] Celery + Redis configured
-- [ ] Celery Beat jobs: overdue task check, POA compliance, daily digest
-- [ ] WhatsApp notification service (Meta API)
-- [ ] SMS fallback (Twilio/MSG91)
-- [ ] Dashboard summary aggregation endpoint
-- [ ] Rate limiting on login endpoint
-- [ ] All endpoints return standardised response format
+- [x] Django project scaffolded with all apps created
+- [x] **CockroachDB** (or PostgreSQL-compatible `DATABASE_URL`) connected and migrations running
+- [x] Custom User model with role field
+- [x] JWT auth endpoints (login, refresh, logout)
+- [x] Geography master data seeded (Karnataka districts/taluks/hoblis/villages)
+- [x] Land Master CRUD API- **Phase 1 domain scaffold (backend):** Django apps `legal`, `revenue` models added. `revenue` app Part 1 fully implemented with Officer profiles, Government Workflow logic, and `days_pending` calculation. `documents` app foundation fully implemented with S3 pre-signed upload/download services and `LandDocumentChecklist`. `tasks` app foundation fully implemented with Task APIs, RBAC, NotificationLog idempotency, and Celery beat schedules (WhatsApp stubbed). Routes composed via `config/api_v1_urls.py`. **Phase 1 Part 1 is 100% complete; transitioning to Part 2 (Dashboard, KYC, & Revenue Automation).**
+- [x] Legal Case CRUD API with external advocate scoping
+- [x] Hearing CRUD API with POA compliance engine
+- [x] Document Vault API with S3 pre-signed upload/download
+- [x] Document version tracking
+- [x] Task CRUD API with role-based visibility
+- [x] Revenue Workflow CRUD API with Officer mapping (§3.1, §3.2)
+- [x] Audit log middleware capturing all mutations
+- [x] Celery + Redis configured
+- [x] Celery Beat jobs: overdue task check, POA compliance, daily digest
+- [x] WhatsApp notification service (Meta API)
+- [x] SMS fallback (Twilio/MSG91)
+- [x] Dashboard summary aggregation endpoint
+- [x] Rate limiting on login endpoint
+- [x] All endpoints return standardised response format
 
 ### Frontend
 - [ ] Next.js app scaffolded (App Router; TypeScript strict)

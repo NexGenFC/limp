@@ -1,5 +1,7 @@
+from datetime import timedelta
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
@@ -101,3 +103,18 @@ class TestRevenueRBAC:
 
         workflow.refresh_from_db()
         assert workflow.is_deleted is True
+
+    def test_days_pending_calculation(self):
+        """Verify the computed property days_pending logic."""
+        dist = District.objects.create(name="D3")
+        taluk = Taluk.objects.create(name="T3", district=dist)
+        hobli = Hobli.objects.create(name="H3", taluk=taluk)
+        village = Village.objects.create(name="V3", hobli=hobli)
+        land = LandFile.objects.create(land_id="LAND-004", village=village)
+
+        ten_days_ago = timezone.now().date() - timedelta(days=10)
+        workflow = GovernmentWorkflow.objects.create(
+            land=land, kind="PHODI", applied_on=ten_days_ago
+        )
+
+        assert workflow.days_pending == 10

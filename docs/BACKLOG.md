@@ -36,10 +36,10 @@ Four non-overlapping backend briefs (branch + PR, `pnpm check` before push): **[
 
 | ID | Item | Status | Roles / notes |
 |----|------|--------|----------------|
-| B7 | Legal cases, hearings, POA engine, documents vault | **Models scaffolded**; APIs / compliance engine not done | [`docs/backend/ARCHITECTURE_BASE.md`](backend/ARCHITECTURE_BASE.md) |
-| B10 | Dashboard aggregation endpoints | **In Progress (Person 3)** | **FOUNDER**, **MANAGEMENT** |
-| B16 | Identity/KYC vaulting & Document Percentage | **In Progress (Person 4)** | **FOUNDER**, **MANAGEMENT** |
-| B11 | JWT **case_ids** / **task_ids** scoping for external advocate & freelance surveyor | Partially spec'd (HLD) | **EXTERNAL_ADVOCATE**, **SURVEYOR_FREELANCE** |
+| B7 | Legal cases foundations | **In Progress (Person 1)** | Foundation models scaffolded |
+| B10 | Dashboard aggregation endpoints | **In Progress (Part 2)** | Person 3 |
+| B16 | Identity/KYC vaulting & Document Percentage | **In Progress (Part 2)** | Person 4 |
+| B11 | JWT **case_ids** / **task_ids** scoping | Partially spec'd (HLD) | **EXTERNAL_ADVOCATE** |
 
 ## Product / Phase 1 (frontend)
 
