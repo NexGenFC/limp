@@ -3,8 +3,39 @@ from rest_framework import serializers
 from apps.documents.models import (
     DocumentKind,
     DocumentVersion,
+    IdentityDocument,
+    IdentityDocumentType,
     LandDocumentChecklistItem,
 )
+
+
+def mask_aadhaar(number: str) -> str:
+    """Mask Aadhaar: 1234-5678-9012 → XXXX-XXXX-9012."""
+    if not number:
+        return ""
+    cleaned = number.replace("-", "").replace(" ", "")
+    if len(cleaned) < 12:
+        return "X" * len(cleaned)
+    return f"XXXX-XXXX-{cleaned[-4:]}"
+
+
+def mask_pan(number: str) -> str:
+    """Mask PAN: ABCDE1234F → XXXXX1234X."""
+    if not number:
+        return ""
+    if len(number) < 10:
+        return "X" * len(number)
+    masked = "X" * 5 + number[5:9] + "X"
+    return masked
+
+
+def mask_document_number(doc_type: str, number: str) -> str:
+    """Apply appropriate masking based on document type."""
+    if doc_type == IdentityDocumentType.AADHAAR:
+        return mask_aadhaar(number)
+    elif doc_type == IdentityDocumentType.PAN:
+        return mask_pan(number)
+    return "X" * len(number) if number else ""
 
 
 class LandDocumentChecklistItemSerializer(serializers.ModelSerializer):
@@ -128,3 +159,71 @@ class PresignedDownloadRequestSerializer(serializers.Serializer):
 class PresignedDownloadResponseSerializer(serializers.Serializer):
     download_url = serializers.URLField()
     expiry_seconds = serializers.IntegerField()
+
+
+class IdentityDocumentSerializer(serializers.ModelSerializer):
+    land_id = serializers.CharField(source="land.land_id", read_only=True)
+    document_type_display = serializers.CharField(
+        source="get_document_type_display", read_only=True
+    )
+    masked_document_number = serializers.SerializerMethodField()
+    uploaded_by_email = serializers.CharField(
+        source="uploaded_by.email", read_only=True
+    )
+    created_by_email = serializers.CharField(source="created_by.email", read_only=True)
+    updated_by_email = serializers.CharField(source="updated_by.email", read_only=True)
+
+    class Meta:
+        model = IdentityDocument
+        fields = (
+            "id",
+            "land",
+            "land_id",
+            "document_type",
+            "document_type_display",
+            "document_number",
+            "masked_document_number",
+            "s3_key",
+            "original_filename",
+            "content_type",
+            "uploaded_by",
+            "uploaded_by_email",
+            "created_at",
+            "updated_at",
+            "created_by",
+            "created_by_email",
+            "updated_by",
+            "updated_by_email",
+        )
+        read_only_fields = (
+            "id",
+            "created_at",
+            "updated_at",
+            "uploaded_by",
+            "created_by",
+            "updated_by",
+        )
+
+    def get_masked_document_number(self, obj) -> str:
+        return mask_document_number(obj.document_type, obj.document_number)
+
+
+class IdentityDocumentCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = IdentityDocument
+        fields = (
+            "land",
+            "document_type",
+            "document_number",
+            "s3_key",
+            "original_filename",
+            "content_type",
+        )
+        read_only_fields = (
+            "id",
+            "created_at",
+            "updated_at",
+            "uploaded_by",
+            "created_by",
+            "updated_by",
+        )

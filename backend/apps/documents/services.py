@@ -4,6 +4,8 @@ import boto3
 from botocore.exceptions import ClientError
 from django.conf import settings
 
+from apps.documents.models import ChecklistStatus, LandDocumentChecklistItem
+
 
 class S3ServiceError(Exception):
     """Raised when S3 operations fail."""
@@ -170,3 +172,67 @@ def delete_object(s3_key: str) -> None:
         client.delete_object(Bucket=bucket, Key=s3_key)
     except ClientError as e:
         raise S3ServiceError(f"Failed to delete object: {e}")
+
+
+def calculate_land_completion(land_id: str) -> float:
+    """
+    Calculate document completion percentage for a land.
+
+    Formula: (Count of items where checklist_status='CERTIFIED_OBTAINED') /
+             (Total items where checklist_status != 'NOT_APPLICABLE')
+
+    Returns:
+        float: 0.0 to 1.0 representing completion percentage
+
+    Raises:
+        ValueError: If land_id is not found
+    """
+    from apps.land.models import LandFile
+
+    try:
+        land = LandFile.objects.get(land_id=land_id)
+    except LandFile.DoesNotExist:
+        raise ValueError(f"Land with land_id '{land_id}' not found")
+
+    items = LandDocumentChecklistItem.objects.filter(land=land, is_deleted=False)
+
+    total_applicable = items.exclude(
+        checklist_status=ChecklistStatus.NOT_APPLICABLE
+    ).count()
+
+    if total_applicable == 0:
+        return 0.0
+
+    certified_count = items.filter(
+        checklist_status=ChecklistStatus.CERTIFIED_OBTAINED
+    ).count()
+
+    return certified_count / total_applicable
+
+
+def get_overall_completion_stats() -> float:
+    """
+    Get average document completion across all lands.
+
+    Returns:
+        float: 0.0 to 1.0 representing average completion percentage
+    """
+    from apps.land.models import LandFile
+
+    lands = LandFile.objects.filter(is_deleted=False)
+
+    if not lands.exists():
+        return 0.0
+
+    total_completion = 0.0
+    count = 0
+
+    for land in lands:
+        completion = calculate_land_completion(land.land_id)
+        total_completion += completion
+        count += 1
+
+    if count == 0:
+        return 0.0
+
+    return total_completion / count
